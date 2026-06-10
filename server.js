@@ -1,15 +1,48 @@
 import express from "express";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 
-const app     = express();
-const PORT    = process.env.PORT || 3000;
+const app      = express();
+const PORT     = process.env.PORT || 3000;
+
+// DATA_DIR: set to a Render Persistent Disk mount path (e.g. /data) to survive deploys.
+// Without a disk, data persists across restarts of the same deploy but resets on redeploy.
+const DATA_DIR  = process.env.DATA_DIR || ".";
+const DATA_FILE = path.join(DATA_DIR, "players.json");
 
 app.use(cors());
 app.use(express.json());
 
-// In-memory store
-const players = {};
+// ── Persistence ────────────────────────────────────────────
+let players = {};
 
+try {
+  if (fs.existsSync(DATA_FILE)) {
+    players = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+    console.log(`Loaded ${Object.keys(players).length} players from ${DATA_FILE}`);
+  }
+} catch (e) {
+  console.error("Failed to load players.json:", e.message);
+}
+
+function savePlayers() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(DATA_FILE, JSON.stringify(players), "utf8");
+  } catch (e) {
+    console.error("Failed to save players.json:", e.message);
+  }
+}
+
+// Save every 30 seconds
+setInterval(savePlayers, 30_000);
+
+// Save on graceful shutdown (Render sends SIGTERM before stopping)
+process.on("SIGTERM", () => { savePlayers(); process.exit(0); });
+process.on("SIGINT",  () => { savePlayers(); process.exit(0); });
+
+// ── Constants ───────────────────────────────────────────────
 const REF_BOOST_MS = 30 * 60 * 1000;
 
 const REFERRAL_MSG = {
@@ -19,6 +52,8 @@ const REFERRAL_MSG = {
   ar: (name, until) => `🎉 إحالة جديدة!\n${name} انضم عبر رابطك.\n⚡ مكافأة x2 نشطة حتى ${until}`,
   hi: (name, until) => `🎉 नया रेफरल!\n${name} आपके लिंक से जुड़ा।\n⚡ x2 बोनस ${until} तक सक्रिय`,
 };
+
+// ── Routes ──────────────────────────────────────────────────
 
 // GET /leaderboard
 app.get("/leaderboard", (req, res) => {
@@ -34,7 +69,6 @@ app.post("/score", (req, res) => {
   if (!userId) return res.status(400).json({ error: "no userId" });
   const existing = players[userId];
   if (existing && existing.balance > parseFloat(balance)) {
-    // Update lang even if balance not higher
     if (lang) existing.lang = lang;
     return res.json({ ok: true, note: "existing score higher" });
   }
@@ -68,10 +102,10 @@ app.post("/referral", async (req, res) => {
 
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (token) {
-    const lang   = p.lang || "ru";
-    const msgFn  = REFERRAL_MSG[lang] || REFERRAL_MSG.ru;
-    const until  = new Date(p.refBoostUntil).toLocaleTimeString("ru-RU", { hour:"2-digit", minute:"2-digit" });
-    const text   = msgFn(newUserName || "Кто-то", until);
+    const lang  = p.lang || "ru";
+    const msgFn = REFERRAL_MSG[lang] || REFERRAL_MSG.ru;
+    const until = new Date(p.refBoostUntil).toLocaleTimeString("ru-RU", { hour:"2-digit", minute:"2-digit" });
+    const text  = msgFn(newUserName || "Кто-то", until);
     try {
       await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: "POST",
@@ -83,7 +117,7 @@ app.post("/referral", async (req, res) => {
   res.json({ ok: true, refBoostUntil: p.refBoostUntil });
 });
 
-// GET /check-ref/:userId — boost status + referral list
+// GET /check-ref/:userId
 app.get("/check-ref/:userId", (req, res) => {
   const p = players[req.params.userId];
   const referralIds = p?.referralIds || [];
