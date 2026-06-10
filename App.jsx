@@ -1198,6 +1198,11 @@ export default function App() {
     setEnergy(HOLDER_MAX_ENERGY);
   }, []);
 
+  const handleRefBoostUpdate = useCallback((v) => {
+    setRefBoostUntil(v);
+    LS.set("fahhhh-ref-boost", v);
+  }, []);
+
   const boostsLeft = boostToday.day === todayISO() ? Math.max(0, 2 - boostToday.count) : 2;
 
   const handleBoost = useCallback(() => {
@@ -1373,7 +1378,7 @@ export default function App() {
       {tab === "earn"        && <EarnTab t={t}/>}
       {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance}/>}
       {tab === "friends"     && <FriendsTab userId={userId} refBoostUntil={refBoostUntil} t={t}
-        onRefBoostUpdate={v => { setRefBoostUntil(v); LS.set("fahhhh-ref-boost", v); }}/>}
+        onRefBoostUpdate={handleRefBoostUpdate}/>}
       {tab === "withdraw"    && <WithdrawTab balance={balance} t={t} userId={userId} userName={userName}
         onWithdraw={amt => setBalance(b => +Math.max(0, b - amt).toFixed(2))}/>}
 
