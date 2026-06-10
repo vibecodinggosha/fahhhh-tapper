@@ -687,7 +687,12 @@ function LangModal({ current, onSelect, onClose }) {
 export default function App() {
   const [balance,          setBalance]          = useState(0);
   const [taps,             setTaps]             = useState(0);
-  const [energy,           setEnergy]           = useState(MAX_ENERGY);
+  const [energy,           setEnergy]           = useState(() => {
+    const saved = LS.get("fahhhh-energy", null);
+    if (!saved?.savedAt) return MAX_ENERGY;
+    const elapsed = (Date.now() - saved.savedAt) / 1000;
+    return Math.min(MAX_ENERGY, (saved.value ?? MAX_ENERGY) + elapsed * MAX_ENERGY / 1800);
+  });
   const [floats,           setFloats]           = useState([]);
   const [tilt,             setTilt]             = useState({ x:0, y:0 });
   const [screaming,        setScreaming]        = useState(false);
@@ -718,9 +723,11 @@ export default function App() {
   const tiltTimer    = useRef(null);
   const screamingRef  = useRef(false);
   const maxEnergyRef  = useRef(MAX_ENERGY);
+  const energyRef     = useRef(energy);
 
   const maxEnergy = holderBoostUntil > Date.now() ? HOLDER_MAX_ENERGY : MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
+  energyRef.current = energy;
 
   const t = T[lang] || T.ru;
 
@@ -754,6 +761,19 @@ export default function App() {
   useEffect(() => {
     const t = setInterval(() => setEnergy(e => Math.min(maxEnergyRef.current, e + maxEnergyRef.current / 1800)), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  /* ── сохранение энергии ── */
+  useEffect(() => {
+    const save = () => LS.set("fahhhh-energy", { value: energyRef.current, savedAt: Date.now() });
+    const tid = setInterval(save, 30000);
+    document.addEventListener("visibilitychange", save);
+    window.addEventListener("pagehide", save);
+    return () => {
+      clearInterval(tid);
+      document.removeEventListener("visibilitychange", save);
+      window.removeEventListener("pagehide", save);
+    };
   }, []);
 
   /* ── истечение буста холдера ── */
