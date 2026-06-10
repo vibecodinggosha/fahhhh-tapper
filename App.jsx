@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Pickaxe, ArrowLeftRight, BookOpen, Copy, Check,
   Zap, Trophy, Rocket, ExternalLink, Globe, ChevronDown,
-  Medal, RefreshCw, User, Star, Users,
+  Medal, RefreshCw, User, Star, Users, Wallet,
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
@@ -88,6 +88,7 @@ const TABS_LABELS = {
   earn:        { ru:"Как играть", en:"Earn",     zh:"赎回",  ar:"اكسب",  hi:"कमाएं"  },
   leaderboard: { ru:"Топ",        en:"Top",      zh:"排行",  ar:"ترتيب", hi:"टॉप"    },
   friends:     { ru:"Друзья",     en:"Friends",  zh:"好友",  ar:"أصدقاء", hi:"दोस्त" },
+  withdraw:    { ru:"Вывод",      en:"Withdraw", zh:"提现",  ar:"سحب",   hi:"निकालें" },
 };
 
 const LANGUAGES = [
@@ -122,6 +123,8 @@ const T = {
     withdrawTitle:"Вывод токенов", withdrawWalletPlaceholder:"TON-кошелёк для получения",
     withdrawAmountPlaceholder:"Количество FAHHHH", withdrawBtn:"Отправить заявку",
     withdrawSent:"Заявка отправлена! Ожидай сообщения.", withdrawNote:"Обработка вручную, обычно до 24 ч.",
+    wdHistoryTitle:"История заявок", wdHistoryEmpty:"Заявок пока нет", wdNewRequest:"Новая заявка",
+    wdAvailable:"Доступно", wdPending:"На рассмотрении",
     earnItems:[
       { title:"Тапай монету",          desc:`Нажимай на большую монету — каждый тап приносит +${PER_TAP} FAHHHH.` },
       { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Максимум 1000. С нуля восстанавливается за 30 минут." },
@@ -155,6 +158,8 @@ const T = {
     withdrawTitle:"Withdraw tokens", withdrawWalletPlaceholder:"TON wallet address",
     withdrawAmountPlaceholder:"Amount of FAHHHH", withdrawBtn:"Submit request",
     withdrawSent:"Request sent! Await a message.", withdrawNote:"Processed manually, usually within 24h.",
+    wdHistoryTitle:"Request history", wdHistoryEmpty:"No requests yet", wdNewRequest:"New request",
+    wdAvailable:"Available", wdPending:"Pending",
     earnItems:[
       { title:"Tap the coin",           desc:`Press the big coin — each tap gives +${PER_TAP} FAHHHH.` },
       { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills from zero in 30 minutes." },
@@ -188,6 +193,8 @@ const T = {
     withdrawTitle:"提取代币", withdrawWalletPlaceholder:"TON钱包地址",
     withdrawAmountPlaceholder:"FAHHHH数量", withdrawBtn:"提交申请",
     withdrawSent:"申请已提交！", withdrawNote:"人工处理，通常24小时内。",
+    wdHistoryTitle:"申请记录", wdHistoryEmpty:"暂无申请", wdNewRequest:"新申请",
+    wdAvailable:"可用", wdPending:"待处理",
     earnItems:[
       { title:"点击金币",      desc:`每次点击获得 +${PER_TAP} FAHHHH。` },
       { title:"注意能量",      desc:"每次消耗1能量，上限1000，从零恢复需30分钟。" },
@@ -221,6 +228,8 @@ const T = {
     withdrawTitle:"سحب الرموز", withdrawWalletPlaceholder:"محفظة TON",
     withdrawAmountPlaceholder:"كمية FAHHHH", withdrawBtn:"إرسال الطلب",
     withdrawSent:"تم إرسال الطلب!", withdrawNote:"معالجة يدوية، خلال 24 ساعة.",
+    wdHistoryTitle:"سجل الطلبات", wdHistoryEmpty:"لا طلبات بعد", wdNewRequest:"طلب جديد",
+    wdAvailable:"متاح", wdPending:"قيد المعالجة",
     earnItems:[
       { title:"انقر العملة",    desc:`كل نقرة تمنحك +${PER_TAP} FAHHHH.` },
       { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تُستعاد من الصفر في 30 دقيقة." },
@@ -254,6 +263,8 @@ const T = {
     withdrawTitle:"टोकन निकालें", withdrawWalletPlaceholder:"TON वॉलेट पता",
     withdrawAmountPlaceholder:"FAHHHH की संख्या", withdrawBtn:"अनुरोध भेजें",
     withdrawSent:"अनुरोध भेजा गया!", withdrawNote:"24 घंटे के भीतर मैन्युअल प्रोसेसिंग।",
+    wdHistoryTitle:"अनुरोध इतिहास", wdHistoryEmpty:"अभी कोई अनुरोध नहीं", wdNewRequest:"नया अनुरोध",
+    wdAvailable:"उपलब्ध", wdPending:"प्रक्रियाधीन",
     earnItems:[
       { title:"सिक्के पर टैप",   desc:`हर टैप से +${PER_TAP} FAHHHH मिलते हैं।` },
       { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। मैक्स 1000। शून्य से 30 मिनट में भरती है।" },
@@ -278,39 +289,14 @@ const LS = {
 };
 
 /* ── Exchange Tab ──────────────────────────────────────── */
-function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoost, holderBoostUntil, onWithdraw }) {
+function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUntil }) {
   const [wallet,       setWallet]       = useState("");
   const [checking,     setChecking]     = useState(false);
   const [result,       setResult]       = useState(null);
   const [boostUsed,    setBoostUsed]    = useState(false);
-  const [wdWallet,     setWdWallet]     = useState("");
-  const [wdAmount,     setWdAmount]     = useState("");
-  const [wdSending,    setWdSending]    = useState(false);
-  const [wdSent,       setWdSent]       = useState(false);
 
   const boostActive = holderBoostUntil > Date.now();
   const boostMinsLeft = boostActive ? Math.ceil((holderBoostUntil - Date.now()) / 60000) : 0;
-
-  const submitWithdraw = async () => {
-    const amt = parseFloat(wdAmount);
-    if (!wdWallet.trim() || !amt || amt <= 0 || amt > balance) return;
-    setWdSending(true);
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 5000);
-    try {
-      await fetch(`${API_URL}/withdraw`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet: wdWallet.trim(), amount: amt, userId, name: userName, balance }),
-        signal: ctrl.signal,
-      });
-      setWdSent(true);
-      onWithdraw(amt);
-      setWdWallet(""); setWdAmount("");
-    } catch {}
-    finally { clearTimeout(tid); }
-    setWdSending(false);
-  };
 
   const checkHolder = async () => {
     const addr = wallet.trim();
@@ -476,58 +462,6 @@ function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoo
         )}
       </div>
 
-      {/* ── Вывод токенов ── */}
-      <div style={{ paddingBottom:16 }}>
-        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
-          letterSpacing:"0.12em", marginBottom:10 }}>{t.withdrawTitle}</div>
-        {wdSent ? (
-          <div style={{ background:"rgba(52,211,153,0.08)", border:"1px solid rgba(52,211,153,0.3)",
-            borderRadius:16, padding:"18px", textAlign:"center" }}>
-            <div style={{ fontSize:24, marginBottom:8 }}>✅</div>
-            <div style={{ fontWeight:800, fontSize:15, color:"#34D399", marginBottom:4 }}>{t.withdrawSent}</div>
-            <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)" }}>{t.withdrawNote}</div>
-            <button onClick={() => setWdSent(false)} style={{ marginTop:12, background:"rgba(255,255,255,0.07)",
-              border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"8px 16px",
-              color:"rgba(255,255,255,0.6)", cursor:"pointer", fontFamily:"inherit", fontSize:12 }}>
-              Новая заявка
-            </button>
-          </div>
-        ) : (
-          <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
-            borderRadius:16, padding:"14px 16px" }}>
-            <input value={wdWallet} onChange={e => setWdWallet(e.target.value)}
-              placeholder={t.withdrawWalletPlaceholder}
-              style={{ width:"100%", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
-                borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"monospace",
-                outline:"none", marginBottom:8, boxSizing:"border-box" }}/>
-            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
-              <input value={wdAmount} onChange={e => setWdAmount(e.target.value)} type="number"
-                min="0.01" max={balance} step="0.01"
-                placeholder={t.withdrawAmountPlaceholder}
-                style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
-                  borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"inherit",
-                  outline:"none" }}/>
-              <button onClick={() => setWdAmount(balance.toFixed(2))} style={{
-                background:"rgba(255,214,0,0.1)", border:"1px solid rgba(255,214,0,0.25)",
-                borderRadius:10, padding:"10px 12px", color:"#FFD600", fontWeight:800,
-                fontSize:12, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>MAX</button>
-            </div>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginBottom:10 }}>
-              Доступно: {balance.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})} FAHHHH
-            </div>
-            <button onClick={submitWithdraw}
-              disabled={wdSending || !wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance}
-              style={{ width:"100%", border:"none", borderRadius:12, padding:"13px",
-                background: (!wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance)
-                  ? "rgba(255,255,255,0.07)" : "linear-gradient(180deg,#FFE838,#FFA000)",
-                color: (!wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance)
-                  ? "rgba(255,255,255,0.25)" : "#5C3A06",
-                fontWeight:900, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
-              {wdSending ? "..." : t.withdrawBtn}
-            </button>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -897,6 +831,125 @@ function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ── Withdraw Tab ──────────────────────────────────────── */
+function WithdrawTab({ balance, t, userId, userName, onWithdraw }) {
+  const [wdWallet,  setWdWallet]  = useState("");
+  const [wdAmount,  setWdAmount]  = useState("");
+  const [wdSending, setWdSending] = useState(false);
+  const [wdSent,    setWdSent]    = useState(false);
+  const [history,   setHistory]   = useState(() => LS.get("fahhhh-wd-history", []));
+
+  const submitWithdraw = async () => {
+    const amt = parseFloat(wdAmount);
+    if (!wdWallet.trim() || !amt || amt <= 0 || amt > balance) return;
+    setWdSending(true);
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      await fetch(`${API_URL}/withdraw`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: wdWallet.trim(), amount: amt, userId, name: userName, balance }),
+        signal: ctrl.signal,
+      });
+      const entry = { wallet: wdWallet.trim(), amount: amt, date: new Date().toISOString() };
+      const newHistory = [entry, ...history];
+      setHistory(newHistory);
+      LS.set("fahhhh-wd-history", newHistory);
+      setWdSent(true);
+      onWithdraw(amt);
+      setWdWallet(""); setWdAmount("");
+    } catch {}
+    finally { clearTimeout(tid); setWdSending(false); }
+  };
+
+  return (
+    <div style={{ flex:1, overflowY:"auto", padding:"20px 20px 16px" }}>
+      <div style={{ fontSize:22, fontWeight:900, letterSpacing:"-0.02em", marginBottom:16 }}>{t.withdrawTitle}</div>
+
+      {/* Form */}
+      {wdSent ? (
+        <div style={{ background:"rgba(52,211,153,0.08)", border:"1px solid rgba(52,211,153,0.3)",
+          borderRadius:16, padding:"18px", textAlign:"center", marginBottom:20 }}>
+          <div style={{ fontSize:28, marginBottom:8 }}>✅</div>
+          <div style={{ fontWeight:800, fontSize:15, color:"#34D399", marginBottom:4 }}>{t.withdrawSent}</div>
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:12 }}>{t.withdrawNote}</div>
+          <button onClick={() => setWdSent(false)} style={{ background:"rgba(255,255,255,0.07)",
+            border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"9px 20px",
+            color:"rgba(255,255,255,0.7)", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:700 }}>
+            {t.wdNewRequest}
+          </button>
+        </div>
+      ) : (
+        <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
+          borderRadius:16, padding:"14px 16px", marginBottom:20 }}>
+          <input value={wdWallet} onChange={e => setWdWallet(e.target.value)}
+            placeholder={t.withdrawWalletPlaceholder}
+            style={{ width:"100%", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
+              borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"monospace",
+              outline:"none", marginBottom:8, boxSizing:"border-box" }}/>
+          <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+            <input value={wdAmount} onChange={e => setWdAmount(e.target.value)} type="number"
+              min="0.01" max={balance} step="0.01"
+              placeholder={t.withdrawAmountPlaceholder}
+              style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
+                borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"inherit",
+                outline:"none" }}/>
+            <button onClick={() => setWdAmount(balance.toFixed(2))} style={{
+              background:"rgba(255,214,0,0.1)", border:"1px solid rgba(255,214,0,0.25)",
+              borderRadius:10, padding:"10px 12px", color:"#FFD600", fontWeight:800,
+              fontSize:12, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>MAX</button>
+          </div>
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginBottom:12 }}>
+            {t.wdAvailable}: {balance.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})} FAHHHH
+          </div>
+          <button onClick={submitWithdraw}
+            disabled={wdSending || !wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance}
+            style={{ width:"100%", border:"none", borderRadius:12, padding:"13px",
+              background: (!wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance)
+                ? "rgba(255,255,255,0.07)" : "linear-gradient(180deg,#FFE838,#FFA000)",
+              color: (!wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance)
+                ? "rgba(255,255,255,0.25)" : "#5C3A06",
+              fontWeight:900, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+            {wdSending ? "..." : t.withdrawBtn}
+          </button>
+        </div>
+      )}
+
+      {/* History */}
+      <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
+        letterSpacing:"0.12em", marginBottom:10 }}>{t.wdHistoryTitle}</div>
+      {history.length === 0 ? (
+        <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)",
+          borderRadius:14, padding:"24px", textAlign:"center" }}>
+          <div style={{ fontSize:32, marginBottom:8 }}>📋</div>
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)" }}>{t.wdHistoryEmpty}</div>
+        </div>
+      ) : history.map((entry, i) => {
+        const d = new Date(entry.date);
+        const dateStr = d.toLocaleDateString() + " " + d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+        return (
+          <div key={i} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)",
+            borderRadius:14, padding:"12px 14px", marginBottom:8 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
+              <div style={{ fontWeight:800, fontSize:15, color:"#FFD600" }}>
+                {entry.amount.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})} FAHHHH
+              </div>
+              <div style={{ background:"rgba(255,170,0,0.12)", border:"1px solid rgba(255,170,0,0.25)",
+                borderRadius:99, padding:"3px 10px", fontSize:11, fontWeight:700, color:"#FFB800" }}>
+                {t.wdPending}
+              </div>
+            </div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", fontFamily:"monospace",
+              wordBreak:"break-all", marginBottom:4 }}>{entry.wallet}</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)" }}>{dateStr}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1308,12 +1361,13 @@ export default function App() {
 
       {/* Контент вкладок */}
       {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}
-        userId={userId} userName={userName} onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}
-        onWithdraw={amt => setBalance(b => +Math.max(0, b - amt).toFixed(2))}/>}
+        onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
       {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance}/>}
       {tab === "friends"     && <FriendsTab userId={userId} refBoostUntil={refBoostUntil} t={t}
         onRefBoostUpdate={v => { setRefBoostUntil(v); LS.set("fahhhh-ref-boost", v); }}/>}
+      {tab === "withdraw"    && <WithdrawTab balance={balance} t={t} userId={userId} userName={userName}
+        onWithdraw={amt => setBalance(b => +Math.max(0, b - amt).toFixed(2))}/>}
 
       {/* Монета */}
       {tab === "mine" && (
@@ -1413,6 +1467,7 @@ export default function App() {
           { id:"earn",        Icon:BookOpen       },
           { id:"friends",     Icon:Users          },
           { id:"leaderboard", Icon:Medal          },
+          { id:"withdraw",    Icon:Wallet         },
         ].map(({ id, Icon }) => {
           const active = id === tab;
           const label  = TABS_LABELS[id][lang];
