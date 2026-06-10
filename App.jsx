@@ -680,16 +680,24 @@ function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
   const boostActive  = refBoostUntil > Date.now();
   const boostMinsLeft = boostActive ? Math.ceil((refBoostUntil - Date.now()) / 60000) : 0;
 
+  const onRefBoostUpdateRef = useRef(onRefBoostUpdate);
+  onRefBoostUpdateRef.current = onRefBoostUpdate;
+
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     const data = await fetchRefData(userId);
-    if (data.refBoostUntil > Date.now()) onRefBoostUpdate(data.refBoostUntil);
+    if (data.refBoostUntil > Date.now()) onRefBoostUpdateRef.current(data.refBoostUntil);
     setReferralList(data.referralList || []);
     setLoading(false);
-  }, [userId, onRefBoostUpdate]);
+  }, [userId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [load]);
 
   const handleShare = useCallback(() => {
     if (!refLink) return;
