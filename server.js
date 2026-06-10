@@ -2,13 +2,16 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app      = express();
 const PORT     = process.env.PORT || 3000;
 
-// DATA_DIR: set to a Render Persistent Disk mount path (e.g. /data) to survive deploys.
-// Without a disk, data persists across restarts of the same deploy but resets on redeploy.
-const DATA_DIR  = process.env.DATA_DIR || ".";
+// DATA_DIR defaults to the server's own directory so players.json is always
+// written to ~/fahhhh-api/players.json regardless of CWD when PM2 starts.
+const DATA_DIR  = process.env.DATA_DIR || __dirname;
 const DATA_FILE = path.join(DATA_DIR, "players.json");
 
 app.use(cors());
