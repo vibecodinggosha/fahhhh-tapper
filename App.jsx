@@ -10,8 +10,29 @@ const CONTRACT   = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
 const PER_TAP    = 0.05;
 const MAX_ENERGY = 1000;
 const SCREAM_MS  = 1900;
-// URL бэкенда — задаётся в .env.production
-const API_URL    = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+// URL бэкенда — задаётся через секрет VITE_API_URL в GitHub Actions
+const API_URL = import.meta.env.VITE_API_URL || "";
+
+async function dbGetLeaderboard() {
+  if (!API_URL) return [];
+  try {
+    const res = await fetch(`${API_URL}/leaderboard`);
+    const { players } = await res.json();
+    return players || [];
+  } catch { return []; }
+}
+
+async function dbSetScore({ userId, name, balance, taps }) {
+  if (!API_URL || !userId) return;
+  try {
+    await fetch(`${API_URL}/score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, name, balance, taps }),
+    });
+  } catch {}
+}
 
 const LEAGUES = [
   { name: "Bronze",   min: 0,    color: "#CD7F32" },
@@ -344,12 +365,9 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/leaderboard`);
-      const { players } = await res.json();
-      setEntries(players || []);
-      setLastRefresh(new Date());
-    } catch (e) { console.error(e); }
+    const players = await dbGetLeaderboard();
+    setEntries(players);
+    setLastRefresh(new Date());
     setLoading(false);
   }, []);
 
@@ -631,14 +649,8 @@ export default function App() {
   useEffect(() => {
     if (!userId || balance <= 0 || !userName) return;
     clearTimeout(submitTimer.current);
-    submitTimer.current = setTimeout(async () => {
-      try {
-        await fetch(`${API_URL}/score`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, name: userName, balance, taps }),
-        });
-      } catch {}
+    submitTimer.current = setTimeout(() => {
+      dbSetScore({ userId, name: userName, balance, taps });
     }, 2000);
     return () => clearTimeout(submitTimer.current);
   }, [balance, taps, userId, userName]);
@@ -646,13 +658,7 @@ export default function App() {
   const handleSetName = useCallback(async (name) => {
     setUserName(name);
     LS.set("fahhhh-uid", { id: userId, name });
-    try {
-      await fetch(`${API_URL}/score`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, name, balance, taps }),
-      });
-    } catch {}
+    dbSetScore({ userId, name, balance, taps });
   }, [userId, balance, taps]);
 
   /* ── тап ── */
