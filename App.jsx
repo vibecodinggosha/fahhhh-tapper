@@ -549,13 +549,15 @@ export default function App() {
   const [userId,    setUserId]    = useState("");
   const [userName,  setUserName]  = useState("");
 
-  const audioPool   = useRef([]);
-  const poolIdx     = useRef(0);
-  const floatId     = useRef(0);
-  const saveTimer   = useRef(null);
-  const screamTimer = useRef(null);
-  const submitTimer = useRef(null);
-  const coinRef     = useRef(null);
+  const audioPool    = useRef([]);
+  const poolIdx      = useRef(0);
+  const floatId      = useRef(0);
+  const saveTimer    = useRef(null);
+  const screamTimer  = useRef(null);
+  const submitTimer  = useRef(null);
+  const coinRef      = useRef(null);
+  const tiltTimer    = useRef(null);
+  const screamingRef = useRef(false);
 
   const t = T[lang] || T.ru;
 
@@ -669,14 +671,24 @@ export default function App() {
     const dx = rect ? (x - rect.width/2)  / (rect.width/2)  : 0;
     const dy = rect ? (y - rect.height/2) / (rect.height/2) : 0;
     setTilt({ x: -dy*18, y: dx*18 });
-    setTimeout(() => setTilt({ x:0, y:0 }), 130);
+    clearTimeout(tiltTimer.current);
+    tiltTimer.current = setTimeout(() => setTilt({ x:0, y:0 }), 130);
 
-    setScreaming(true);
+    if (!screamingRef.current) {
+      screamingRef.current = true;
+      setScreaming(true);
+    }
     clearTimeout(screamTimer.current);
-    screamTimer.current = setTimeout(() => setScreaming(false), SCREAM_MS);
+    screamTimer.current = setTimeout(() => {
+      screamingRef.current = false;
+      setScreaming(false);
+    }, SCREAM_MS);
 
     const id = floatId.current++;
-    setFloats(f => [...f, { id, x, y }]);
+    setFloats(f => {
+      const trimmed = f.length >= 6 ? f.slice(-5) : f;
+      return [...trimmed, { id, x, y }];
+    });
     setTimeout(() => setFloats(f => f.filter(p => p.id !== id)), 900);
   }, [energy, playSound]);
 
@@ -721,6 +733,8 @@ export default function App() {
         @keyframes mouthBounce { 0%,100%{transform:scaleY(1) scaleX(1)} 30%{transform:scaleY(1.12) scaleX(1.04)} 70%{transform:scaleY(0.88) scaleX(0.96)} }
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes toastPop { from{opacity:0;transform:translateX(-50%) scale(0.85) translateY(8px)} to{opacity:1;transform:translateX(-50%) scale(1) translateY(0)} }
+        .coin-shake { animation: coinShake 0.18s linear infinite; }
+        .mouth-bounce { animation: mouthBounce 0.18s ease-in-out infinite; }
         @media (prefers-reduced-motion:reduce) { *{animation:none!important;transition:none!important} }
       `}</style>
 
@@ -782,14 +796,16 @@ export default function App() {
       {tab === "mine" && (
         <>
           <div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",perspective:"900px",paddingBottom:4 }}>
-            <button ref={coinRef} onPointerDown={handleTap} aria-label={t.tapBtn} style={{
+            <button ref={coinRef} onPointerDown={handleTap} aria-label={t.tapBtn}
+              className={screaming ? "coin-shake" : undefined}
+              style={{
               width:"min(72vw,290px)", height:"min(72vw,290px)",
               borderRadius:"50%", border:"none", padding:0, cursor:"pointer",
               position:"relative", background:"none",
               transform:`rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
               transition:"transform 130ms ease", touchAction:"manipulation",
               WebkitTapHighlightColor:"transparent",
-              animation: screaming ? "coinShake 0.18s linear infinite" : "none" }}>
+              willChange:"transform" }}>
               <div style={{ position:"absolute",inset:-24,borderRadius:"50%",
                 background: screaming ? "radial-gradient(circle,rgba(255,80,0,0.3) 0%,transparent 70%)" : "radial-gradient(circle,rgba(255,214,0,0.2) 0%,transparent 70%)",
                 filter:"blur(18px)",pointerEvents:"none",transition:"background 0.2s" }}/>
@@ -822,8 +838,8 @@ export default function App() {
                 </g>
                 <line x1="112" y1="180" x2="178" y2="180" stroke="#5D3A00" strokeWidth="7" strokeLinecap="round"
                   style={{ transition:"opacity 0.08s", opacity: screaming ? 0 : 1 }}/>
-                <g style={{ transition:"opacity 0.08s", opacity: screaming ? 1 : 0,
-                  animation: screaming ? "mouthBounce 0.18s ease-in-out infinite" : "none" }}>
+                <g className={screaming ? "mouth-bounce" : undefined}
+                  style={{ transition:"opacity 0.08s", opacity: screaming ? 1 : 0 }}>
                   <ellipse cx="145" cy="192" rx="40" ry="30" fill="#1A0000"/>
                   <path d="M 105 178 Q 125 168 145 172 Q 165 168 185 178" fill="#8B4513"/>
                   <path d="M 105 178 Q 105 222 145 224 Q 185 222 185 178" fill="#A0522D"/>
