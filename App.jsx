@@ -7,7 +7,7 @@ import {
 import { FAAAH_SRC } from "./audio.js";
 
 const CONTRACT          = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
-const PER_TAP           = 0.01;
+const PER_TAP           = 0.03;
 const MAX_ENERGY        = 1000;
 const HOLDER_MAX_ENERGY = 2000;
 const HOLDER_BOOST_MS   = 30 * 60 * 1000;
@@ -194,7 +194,7 @@ const LS = {
 };
 
 /* ── Exchange Tab ──────────────────────────────────────── */
-function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoost, holderBoostUntil }) {
+function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoost, holderBoostUntil, onWithdraw }) {
   const [wallet,       setWallet]       = useState("");
   const [checking,     setChecking]     = useState(false);
   const [result,       setResult]       = useState(null);
@@ -221,6 +221,7 @@ function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoo
         signal: ctrl.signal,
       });
       setWdSent(true);
+      onWithdraw(amt);
       setWdWallet(""); setWdAmount("");
     } catch {}
     finally { clearTimeout(tid); }
@@ -948,7 +949,8 @@ export default function App() {
 
       {/* Контент вкладок */}
       {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}
-        userId={userId} userName={userName} onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}/>}
+        userId={userId} userName={userName} onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}
+        onWithdraw={amt => setBalance(b => +Math.max(0, b - amt).toFixed(2))}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
       {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance}/>}
 
