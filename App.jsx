@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Pickaxe, ArrowLeftRight, BookOpen, Copy, Check,
   Zap, Trophy, Rocket, ExternalLink, Globe, ChevronDown,
-  Medal, RefreshCw, User, Star,
+  Medal, RefreshCw, User, Star, Users,
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
@@ -121,6 +121,7 @@ const T = {
       { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Максимум 1000. С нуля восстанавливается за 30 минут." },
       { title:"Буст — перезарядка",    desc:"Мгновенно восстанавливает всю энергию. Максимум 2 буста в день." },
       { title:"Бонус холдера",         desc:"Держишь FAHHHH? Проверь кошелёк в разделе Обмен — получишь +1000 к максимуму энергии на 30 минут." },
+      { title:"Рефералы",              desc:"Пригласи друга по своей ссылке (раздел Обмен) — получишь x2 на все тапы на 30 минут. Каждый реферал добавляет ещё +30 мин." },
       { title:"Лиги и прогресс",       desc:"Баланс → лига: Bronze → Silver → Gold → Platinum → Diamond." },
       { title:"Реальный токен TON",    desc:"FAHHHH — настоящий jetton-токен. Обменяй на STON.fi или DeDust." },
     ],
@@ -148,6 +149,7 @@ const T = {
       { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills from zero in 30 minutes." },
       { title:"Boost — instant refill", desc:"Instantly restores all energy. Max 2 boosts per day." },
       { title:"Holder bonus",           desc:"Hold FAHHHH? Check your wallet in Exchange — get +1000 max energy for 30 min." },
+      { title:"Referrals",              desc:"Share your link (Exchange tab) — get x2 on all taps for 30 min. Every referral adds another +30 min." },
       { title:"Leagues & progress",     desc:"Balance → league: Bronze → Silver → Gold → Platinum → Diamond." },
       { title:"Real TON token",         desc:"FAHHHH is a real jetton token. Trade on STON.fi or DeDust." },
     ],
@@ -175,6 +177,7 @@ const T = {
       { title:"注意能量",      desc:"每次消耗1能量，上限1000，从零恢复需30分钟。" },
       { title:"加速",          desc:"立即回满能量。每天最多2次。" },
       { title:"持有者奖励",    desc:"持有FAHHHH？在交易页验证钱包，获得+1000最大能量（30分钟）。" },
+      { title:"推荐好友",      desc:"分享你的推荐链接（交易页）— 获得30分钟x2点击奖励。每位推荐再加+30分钟。" },
       { title:"联赛",          desc:"余额决定联赛：铜→银→金→铂金→钻石。" },
       { title:"真实TON代币",   desc:"FAHHHH是真实jetton，可在STON.fi或DeDust交易。" },
     ],
@@ -202,6 +205,7 @@ const T = {
       { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تُستعاد من الصفر في 30 دقيقة." },
       { title:"تعزيز",          desc:"يستعيد الطاقة كاملة فوراً. الحد مرتان يومياً." },
       { title:"مكافأة الحامل",  desc:"تحمل FAHHHH؟ تحقق من محفظتك في التبادل واحصل على +1000 طاقة لمدة 30 دقيقة." },
+      { title:"الإحالات",       desc:"شارك رابطك (صفحة التبادل) — احصل على x2 لجميع النقرات لمدة 30 دقيقة. كل إحالة تضيف +30 دقيقة." },
       { title:"الدوريات",       desc:"برونز → فضة → ذهب → بلاتين → ألماس." },
       { title:"رمز TON حقيقي",  desc:"FAHHHH رمز حقيقي. تداوله على STON.fi أو DeDust." },
     ],
@@ -229,6 +233,7 @@ const T = {
       { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। मैक्स 1000। शून्य से 30 मिनट में भरती है।" },
       { title:"बूस्ट",           desc:"एनर्जी तुरंत पूरी हो जाती है। दिन में अधिकतम 2 बार।" },
       { title:"होल्डर बोनस",     desc:"FAHHHH होल्ड करते हैं? Exchange में चेक करें — 30 मिनट के लिए +1000 एनर्जी।" },
+      { title:"रेफरल",           desc:"अपना लिंक शेयर करें (Exchange टैब) — 30 मिनट x2 टैप बोनस। हर रेफरल +30 मिनट जोड़ता है।" },
       { title:"लीग",             desc:"Bronze → Silver → Gold → Platinum → Diamond।" },
       { title:"TON टोकन",        desc:"FAHHHH असली जेटन टोकन है।" },
     ],
@@ -552,8 +557,8 @@ function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoo
 }
 
 /* ── Earn Tab ──────────────────────────────────────────── */
-const EARN_ICONS  = [Pickaxe, Zap, Rocket, Star, Trophy, ArrowLeftRight];
-const EARN_COLORS = ["#FFD600","#FFB800","#60A5FA","#34D399","#E879F9","#A78BFA"];
+const EARN_ICONS  = [Pickaxe, Zap, Rocket, Star, Users, Trophy, ArrowLeftRight];
+const EARN_COLORS = ["#FFD600","#FFB800","#60A5FA","#34D399","#F472B6","#E879F9","#A78BFA"];
 
 function EarnTab({ t }) {
   return (
