@@ -2,12 +2,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Pickaxe, ArrowLeftRight, BookOpen, Copy, Check,
   Zap, Trophy, Rocket, ExternalLink, Globe, ChevronDown,
-  Medal, RefreshCw, User,
+  Medal, RefreshCw, User, Star,
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
 const CONTRACT          = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
-const PER_TAP           = 0.03;
+const PER_TAP           = 0.05;
 const MAX_ENERGY        = 1000;
 const HOLDER_MAX_ENERGY = 2000;
 const HOLDER_BOOST_MS   = 30 * 60 * 1000;
@@ -83,9 +83,10 @@ const T = {
     withdrawAmountPlaceholder:"Количество FAHHHH", withdrawBtn:"Отправить заявку",
     withdrawSent:"Заявка отправлена! Ожидай сообщения.", withdrawNote:"Обработка вручную, обычно до 24 ч.",
     earnItems:[
-      { title:"Тапай монету",          desc:"Нажимай на большую монету — каждый тап приносит +0.01 FAHHHH." },
-      { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Макс 1000. Восст. +3/сек." },
-      { title:"Буст — перезарядка",    desc:"Кнопка Буст мгновенно восстанавливает всю энергию." },
+      { title:"Тапай монету",          desc:`Нажимай на большую монету — каждый тап приносит +${PER_TAP} FAHHHH.` },
+      { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Максимум 1000. С нуля восстанавливается за 30 минут." },
+      { title:"Буст — перезарядка",    desc:"Мгновенно восстанавливает всю энергию. Максимум 2 буста в день." },
+      { title:"Бонус холдера",         desc:"Держишь FAHHHH? Проверь кошелёк в разделе Обмен — получишь +1000 к максимуму энергии на 30 минут." },
       { title:"Лиги и прогресс",       desc:"Баланс → лига: Bronze → Silver → Gold → Platinum → Diamond." },
       { title:"Реальный токен TON",    desc:"FAHHHH — настоящий jetton-токен. Обменяй на STON.fi или DeDust." },
     ],
@@ -106,9 +107,10 @@ const T = {
     withdrawAmountPlaceholder:"Amount of FAHHHH", withdrawBtn:"Submit request",
     withdrawSent:"Request sent! Await a message.", withdrawNote:"Processed manually, usually within 24h.",
     earnItems:[
-      { title:"Tap the coin",           desc:"Press the big coin — each tap gives +0.01 FAHHHH." },
-      { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills +3/sec." },
-      { title:"Boost — instant refill", desc:"The Boost button instantly restores all energy." },
+      { title:"Tap the coin",           desc:`Press the big coin — each tap gives +${PER_TAP} FAHHHH.` },
+      { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills from zero in 30 minutes." },
+      { title:"Boost — instant refill", desc:"Instantly restores all energy. Max 2 boosts per day." },
+      { title:"Holder bonus",           desc:"Hold FAHHHH? Check your wallet in Exchange — get +1000 max energy for 30 min." },
       { title:"Leagues & progress",     desc:"Balance → league: Bronze → Silver → Gold → Platinum → Diamond." },
       { title:"Real TON token",         desc:"FAHHHH is a real jetton token. Trade on STON.fi or DeDust." },
     ],
@@ -129,11 +131,12 @@ const T = {
     withdrawAmountPlaceholder:"FAHHHH数量", withdrawBtn:"提交申请",
     withdrawSent:"申请已提交！", withdrawNote:"人工处理，通常24小时内。",
     earnItems:[
-      { title:"点击金币",    desc:"每次点击获得 +0.01 FAHHHH。" },
-      { title:"注意能量",    desc:"每次消耗1能量，上限1000，每秒回复+3。" },
-      { title:"加速",        desc:"加速按钮立即回满能量。" },
-      { title:"联赛",        desc:"余额决定联赛：铜→银→金→铂金→钻石。" },
-      { title:"真实TON代币", desc:"FAHHHH是真实jetton，可在STON.fi或DeDust交易。" },
+      { title:"点击金币",      desc:`每次点击获得 +${PER_TAP} FAHHHH。` },
+      { title:"注意能量",      desc:"每次消耗1能量，上限1000，从零恢复需30分钟。" },
+      { title:"加速",          desc:"立即回满能量。每天最多2次。" },
+      { title:"持有者奖励",    desc:"持有FAHHHH？在交易页验证钱包，获得+1000最大能量（30分钟）。" },
+      { title:"联赛",          desc:"余额决定联赛：铜→银→金→铂金→钻石。" },
+      { title:"真实TON代币",   desc:"FAHHHH是真实jetton，可在STON.fi或DeDust交易。" },
     ],
   },
   ar: {
@@ -152,9 +155,10 @@ const T = {
     withdrawAmountPlaceholder:"كمية FAHHHH", withdrawBtn:"إرسال الطلب",
     withdrawSent:"تم إرسال الطلب!", withdrawNote:"معالجة يدوية، خلال 24 ساعة.",
     earnItems:[
-      { title:"انقر العملة",    desc:"كل نقرة تمنحك +0.01 FAHHHH." },
-      { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تتجدد +3/ث." },
-      { title:"تعزيز",          desc:"يستعيد الطاقة كاملة فوراً." },
+      { title:"انقر العملة",    desc:`كل نقرة تمنحك +${PER_TAP} FAHHHH.` },
+      { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تُستعاد من الصفر في 30 دقيقة." },
+      { title:"تعزيز",          desc:"يستعيد الطاقة كاملة فوراً. الحد مرتان يومياً." },
+      { title:"مكافأة الحامل",  desc:"تحمل FAHHHH؟ تحقق من محفظتك في التبادل واحصل على +1000 طاقة لمدة 30 دقيقة." },
       { title:"الدوريات",       desc:"برونز → فضة → ذهب → بلاتين → ألماس." },
       { title:"رمز TON حقيقي",  desc:"FAHHHH رمز حقيقي. تداوله على STON.fi أو DeDust." },
     ],
@@ -175,14 +179,17 @@ const T = {
     withdrawAmountPlaceholder:"FAHHHH की संख्या", withdrawBtn:"अनुरोध भेजें",
     withdrawSent:"अनुरोध भेजा गया!", withdrawNote:"24 घंटे के भीतर मैन्युअल प्रोसेसिंग।",
     earnItems:[
-      { title:"सिक्के पर टैप",   desc:"हर टैप से +0.01 FAHHHH मिलते हैं।" },
-      { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। +3/सेकंड।" },
-      { title:"बूस्ट",           desc:"एनर्जी तुरंत पूरी हो जाती है।" },
+      { title:"सिक्के पर टैप",   desc:`हर टैप से +${PER_TAP} FAHHHH मिलते हैं।` },
+      { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। मैक्स 1000। शून्य से 30 मिनट में भरती है।" },
+      { title:"बूस्ट",           desc:"एनर्जी तुरंत पूरी हो जाती है। दिन में अधिकतम 2 बार।" },
+      { title:"होल्डर बोनस",     desc:"FAHHHH होल्ड करते हैं? Exchange में चेक करें — 30 मिनट के लिए +1000 एनर्जी।" },
       { title:"लीग",             desc:"Bronze → Silver → Gold → Platinum → Diamond।" },
       { title:"TON टोकन",        desc:"FAHHHH असली जेटन टोकन है।" },
     ],
   },
 };
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 /* ── localStorage helpers ──────────────────────────────── */
 const LS = {
@@ -449,8 +456,8 @@ function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoo
 }
 
 /* ── Earn Tab ──────────────────────────────────────────── */
-const EARN_ICONS  = [Pickaxe, Zap, Rocket, Trophy, ArrowLeftRight];
-const EARN_COLORS = ["#FFD600","#FFB800","#60A5FA","#34D399","#A78BFA"];
+const EARN_ICONS  = [Pickaxe, Zap, Rocket, Star, Trophy, ArrowLeftRight];
+const EARN_COLORS = ["#FFD600","#FFB800","#60A5FA","#34D399","#E879F9","#A78BFA"];
 
 function EarnTab({ t }) {
   return (
@@ -696,6 +703,10 @@ export default function App() {
     const v = LS.get("fahhhh-holder-boost", 0);
     return v > Date.now() ? v : 0;
   });
+  const [boostToday, setBoostToday] = useState(() => {
+    const v = LS.get("fahhhh-boost-info", { count: 0, day: "" });
+    return v.day === todayISO() ? v : { count: 0, day: todayISO() };
+  });
 
   const audioPool    = useRef([]);
   const poolIdx      = useRef(0);
@@ -741,7 +752,7 @@ export default function App() {
 
   /* ── энергия ── */
   useEffect(() => {
-    const t = setInterval(() => setEnergy(e => Math.min(maxEnergyRef.current, e + 3)), 1000);
+    const t = setInterval(() => setEnergy(e => Math.min(maxEnergyRef.current, e + maxEnergyRef.current / 1800)), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -814,6 +825,18 @@ export default function App() {
     LS.set("fahhhh-holder-boost", expiry);
     setEnergy(HOLDER_MAX_ENERGY);
   }, []);
+
+  const boostsLeft = boostToday.day === todayISO() ? Math.max(0, 2 - boostToday.count) : 2;
+
+  const handleBoost = useCallback(() => {
+    const today = todayISO();
+    const currentCount = boostToday.day === today ? boostToday.count : 0;
+    if (currentCount >= 2) return;
+    const updated = { count: currentCount + 1, day: today };
+    setBoostToday(updated);
+    LS.set("fahhhh-boost-info", updated);
+    setEnergy(maxEnergyRef.current);
+  }, [boostToday]);
 
   /* ── тап ── */
   const handleTap = useCallback((e) => {
@@ -1029,14 +1052,19 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",gap:7 }}>
                 <Zap size={22} color="#FFD600" fill="#FFD600"/>
                 <span style={{ fontSize:18,fontWeight:800,fontVariantNumeric:"tabular-nums" }}>
-                  {energy}<span style={{ color:"rgba(255,255,255,0.38)",fontWeight:600 }}>/{maxEnergy}</span>
+                  {Math.floor(energy)}<span style={{ color:"rgba(255,255,255,0.38)",fontWeight:600 }}>/{maxEnergy}</span>
                 </span>
               </div>
-              <button onClick={() => setEnergy(maxEnergy)} style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",
-                borderRadius:14,padding:"9px 20px",color:"#fff",fontWeight:800,fontSize:15,
-                display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontFamily:"inherit" }}>
+              <button onClick={handleBoost} disabled={boostsLeft === 0} style={{
+                background: boostsLeft === 0 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)",
+                border:`1px solid ${boostsLeft === 0 ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.12)"}`,
+                borderRadius:14,padding:"9px 20px",
+                color: boostsLeft === 0 ? "rgba(255,255,255,0.25)" : "#fff",
+                fontWeight:800,fontSize:15,
+                display:"flex",alignItems:"center",gap:7,
+                cursor: boostsLeft === 0 ? "default" : "pointer",fontFamily:"inherit" }}>
                 <Rocket size={16}/> {t.boost}
+                <span style={{ fontSize:12,fontWeight:600,opacity:0.7 }}>({boostsLeft})</span>
               </button>
             </div>
             <div style={{ height:7,borderRadius:99,background:"rgba(255,255,255,0.1)",overflow:"hidden" }}>
