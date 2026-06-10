@@ -6,10 +6,12 @@ import {
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
-const CONTRACT   = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
-const PER_TAP    = 0.05;
-const MAX_ENERGY = 1000;
-const SCREAM_MS  = 1900;
+const CONTRACT          = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
+const PER_TAP           = 0.01;
+const MAX_ENERGY        = 1000;
+const HOLDER_MAX_ENERGY = 2000;
+const HOLDER_BOOST_MS   = 30 * 60 * 1000;
+const SCREAM_MS         = 1900;
 
 // URL бэкенда — задаётся через секрет VITE_API_URL в GitHub Actions
 const API_URL = import.meta.env.VITE_API_URL || "";
@@ -76,8 +78,12 @@ const T = {
     earnTitle:"Как зарабатывать", earnSub:"Всё что нужно знать об игре",
     checkHolder:"Проверить холдинг", checkBtn:"Проверить",
     isHolder:"Холдер FAHHHH", notHolder:"Не холдер", noToken:"На этом кошельке нет FAHHHH",
+    holderBoostBtn:"Активировать бонус (+1000 энергии на 30 мин)", holderBoostDone:"Бонус активирован! ⚡",
+    withdrawTitle:"Вывод токенов", withdrawWalletPlaceholder:"TON-кошелёк для получения",
+    withdrawAmountPlaceholder:"Количество FAHHHH", withdrawBtn:"Отправить заявку",
+    withdrawSent:"Заявка отправлена! Ожидай сообщения.", withdrawNote:"Обработка вручную, обычно до 24 ч.",
     earnItems:[
-      { title:"Тапай монету",          desc:"Нажимай на большую монету — каждый тап приносит +0.05 FAHHHH." },
+      { title:"Тапай монету",          desc:"Нажимай на большую монету — каждый тап приносит +0.01 FAHHHH." },
       { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Макс 1000. Восст. +3/сек." },
       { title:"Буст — перезарядка",    desc:"Кнопка Буст мгновенно восстанавливает всю энергию." },
       { title:"Лиги и прогресс",       desc:"Баланс → лига: Bronze → Silver → Gold → Platinum → Diamond." },
@@ -95,8 +101,12 @@ const T = {
     earnTitle:"How to earn", earnSub:"Everything you need to know",
     checkHolder:"Check holdings", checkBtn:"Check",
     isHolder:"FAHHHH Holder", notHolder:"Not a holder", noToken:"No FAHHHH on this wallet",
+    holderBoostBtn:"Activate bonus (+1000 energy for 30 min)", holderBoostDone:"Bonus activated! ⚡",
+    withdrawTitle:"Withdraw tokens", withdrawWalletPlaceholder:"TON wallet address",
+    withdrawAmountPlaceholder:"Amount of FAHHHH", withdrawBtn:"Submit request",
+    withdrawSent:"Request sent! Await a message.", withdrawNote:"Processed manually, usually within 24h.",
     earnItems:[
-      { title:"Tap the coin",           desc:"Press the big coin — each tap gives +0.05 FAHHHH." },
+      { title:"Tap the coin",           desc:"Press the big coin — each tap gives +0.01 FAHHHH." },
       { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills +3/sec." },
       { title:"Boost — instant refill", desc:"The Boost button instantly restores all energy." },
       { title:"Leagues & progress",     desc:"Balance → league: Bronze → Silver → Gold → Platinum → Diamond." },
@@ -114,8 +124,12 @@ const T = {
     earnTitle:"如何赚取", earnSub:"游戏说明",
     checkHolder:"查询持仓", checkBtn:"查询",
     isHolder:"FAHHHH持有者", notHolder:"非持有者", noToken:"此钱包无FAHHHH",
+    holderBoostBtn:"激活奖励 (+1000能量30分钟)", holderBoostDone:"奖励已激活！⚡",
+    withdrawTitle:"提取代币", withdrawWalletPlaceholder:"TON钱包地址",
+    withdrawAmountPlaceholder:"FAHHHH数量", withdrawBtn:"提交申请",
+    withdrawSent:"申请已提交！", withdrawNote:"人工处理，通常24小时内。",
     earnItems:[
-      { title:"点击金币",    desc:"每次点击获得 +0.05 FAHHHH。" },
+      { title:"点击金币",    desc:"每次点击获得 +0.01 FAHHHH。" },
       { title:"注意能量",    desc:"每次消耗1能量，上限1000，每秒回复+3。" },
       { title:"加速",        desc:"加速按钮立即回满能量。" },
       { title:"联赛",        desc:"余额决定联赛：铜→银→金→铂金→钻石。" },
@@ -133,8 +147,12 @@ const T = {
     earnTitle:"كيف تكسب", earnSub:"شرح اللعبة",
     checkHolder:"التحقق من الحيازة", checkBtn:"تحقق",
     isHolder:"حامل FAHHHH", notHolder:"ليس حاملاً", noToken:"لا يوجد FAHHHH في هذه المحفظة",
+    holderBoostBtn:"تفعيل المكافأة (+1000 طاقة لمدة 30 دقيقة)", holderBoostDone:"تم تفعيل المكافأة! ⚡",
+    withdrawTitle:"سحب الرموز", withdrawWalletPlaceholder:"محفظة TON",
+    withdrawAmountPlaceholder:"كمية FAHHHH", withdrawBtn:"إرسال الطلب",
+    withdrawSent:"تم إرسال الطلب!", withdrawNote:"معالجة يدوية، خلال 24 ساعة.",
     earnItems:[
-      { title:"انقر العملة",    desc:"كل نقرة تمنحك +0.05 FAHHHH." },
+      { title:"انقر العملة",    desc:"كل نقرة تمنحك +0.01 FAHHHH." },
       { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تتجدد +3/ث." },
       { title:"تعزيز",          desc:"يستعيد الطاقة كاملة فوراً." },
       { title:"الدوريات",       desc:"برونز → فضة → ذهب → بلاتين → ألماس." },
@@ -152,8 +170,12 @@ const T = {
     earnTitle:"कैसे कमाएं", earnSub:"गेम की जानकारी",
     checkHolder:"होल्डिंग जांचें", checkBtn:"जांचें",
     isHolder:"FAHHHH होल्डर", notHolder:"होल्डर नहीं", noToken:"इस वॉलेट में FAHHHH नहीं",
+    holderBoostBtn:"बोनस सक्रिय करें (+1000 ऊर्जा 30 मिनट)", holderBoostDone:"बोनस सक्रिय! ⚡",
+    withdrawTitle:"टोकन निकालें", withdrawWalletPlaceholder:"TON वॉलेट पता",
+    withdrawAmountPlaceholder:"FAHHHH की संख्या", withdrawBtn:"अनुरोध भेजें",
+    withdrawSent:"अनुरोध भेजा गया!", withdrawNote:"24 घंटे के भीतर मैन्युअल प्रोसेसिंग।",
     earnItems:[
-      { title:"सिक्के पर टैप",   desc:"हर टैप से +0.05 FAHHHH मिलते हैं।" },
+      { title:"सिक्के पर टैप",   desc:"हर टैप से +0.01 FAHHHH मिलते हैं।" },
       { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। +3/सेकंड।" },
       { title:"बूस्ट",           desc:"एनर्जी तुरंत पूरी हो जाती है।" },
       { title:"लीग",             desc:"Bronze → Silver → Gold → Platinum → Diamond।" },
@@ -172,10 +194,38 @@ const LS = {
 };
 
 /* ── Exchange Tab ──────────────────────────────────────── */
-function ExchangeTab({ balance, copied, onCopy, t }) {
-  const [wallet,   setWallet]   = useState("");
-  const [checking, setChecking] = useState(false);
-  const [result,   setResult]   = useState(null);
+function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoost, holderBoostUntil }) {
+  const [wallet,       setWallet]       = useState("");
+  const [checking,     setChecking]     = useState(false);
+  const [result,       setResult]       = useState(null);
+  const [boostUsed,    setBoostUsed]    = useState(false);
+  const [wdWallet,     setWdWallet]     = useState("");
+  const [wdAmount,     setWdAmount]     = useState("");
+  const [wdSending,    setWdSending]    = useState(false);
+  const [wdSent,       setWdSent]       = useState(false);
+
+  const boostActive = holderBoostUntil > Date.now();
+  const boostMinsLeft = boostActive ? Math.ceil((holderBoostUntil - Date.now()) / 60000) : 0;
+
+  const submitWithdraw = async () => {
+    const amt = parseFloat(wdAmount);
+    if (!wdWallet.trim() || !amt || amt <= 0 || amt > balance) return;
+    setWdSending(true);
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      await fetch(`${API_URL}/withdraw`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: wdWallet.trim(), amount: amt, userId, name: userName, balance }),
+        signal: ctrl.signal,
+      });
+      setWdSent(true);
+      setWdWallet(""); setWdAmount("");
+    } catch {}
+    finally { clearTimeout(tid); }
+    setWdSending(false);
+  };
 
   const checkHolder = async () => {
     const addr = wallet.trim();
@@ -298,23 +348,38 @@ function ExchangeTab({ balance, copied, onCopy, t }) {
         {result && !result.error && (
           <div style={{ background: result.isHolder ? "rgba(52,211,153,0.08)" : "rgba(255,80,80,0.07)",
             border:`1px solid ${result.isHolder ? "rgba(52,211,153,0.3)" : "rgba(255,80,80,0.2)"}`,
-            borderRadius:16, padding:"16px", display:"flex", alignItems:"center", gap:14 }}>
-            <div style={{ width:44, height:44, borderRadius:"50%", flexShrink:0,
-              background: result.isHolder ? "rgba(52,211,153,0.15)" : "rgba(255,80,80,0.12)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:20, fontWeight:900, color: result.isHolder ? "#34D399" : "#FF6060" }}>
-              {result.isHolder ? "✓" : "✗"}
-            </div>
-            <div>
-              <div style={{ fontWeight:800, fontSize:15, color: result.isHolder ? "#34D399" : "#FF6060" }}>
-                {result.isHolder ? t.isHolder : t.notHolder}
+            borderRadius:16, padding:"16px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+              <div style={{ width:44, height:44, borderRadius:"50%", flexShrink:0,
+                background: result.isHolder ? "rgba(52,211,153,0.15)" : "rgba(255,80,80,0.12)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:20, fontWeight:900, color: result.isHolder ? "#34D399" : "#FF6060" }}>
+                {result.isHolder ? "✓" : "✗"}
               </div>
-              <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:3 }}>
-                {result.isHolder
-                  ? `Баланс: ${result.amount.toLocaleString("en-US",{maximumFractionDigits:4})} FAHHHH`
-                  : t.noToken}
+              <div>
+                <div style={{ fontWeight:800, fontSize:15, color: result.isHolder ? "#34D399" : "#FF6060" }}>
+                  {result.isHolder ? t.isHolder : t.notHolder}
+                </div>
+                <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:3 }}>
+                  {result.isHolder
+                    ? `Баланс: ${result.amount.toLocaleString("en-US",{maximumFractionDigits:4})} FAHHHH`
+                    : t.noToken}
+                </div>
               </div>
             </div>
+            {result.isHolder && (
+              <button onClick={() => { if (!boostUsed && !boostActive) { onHolderBoost(); setBoostUsed(true); } }}
+                disabled={boostUsed || boostActive}
+                style={{ marginTop:12, width:"100%", border:"none", borderRadius:12, padding:"11px",
+                  background: (boostUsed || boostActive) ? "rgba(255,255,255,0.06)" : "linear-gradient(180deg,#4ADE80,#22C55E)",
+                  color: (boostUsed || boostActive) ? "rgba(255,255,255,0.4)" : "#fff",
+                  fontWeight:800, fontSize:13, cursor: (boostUsed || boostActive) ? "default" : "pointer",
+                  fontFamily:"inherit" }}>
+                {(boostUsed || boostActive)
+                  ? (boostActive ? `${t.holderBoostDone} (${boostMinsLeft} мин)` : t.holderBoostDone)
+                  : t.holderBoostBtn}
+              </button>
+            )}
           </div>
         )}
         {result?.error && (
@@ -322,6 +387,59 @@ function ExchangeTab({ balance, copied, onCopy, t }) {
             borderRadius:16, padding:"14px 16px", display:"flex", alignItems:"center", gap:10 }}>
             <span style={{ fontSize:18 }}>⚠</span>
             <span style={{ fontSize:13, color:"rgba(255,200,80,0.9)" }}>{result.error}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Вывод токенов ── */}
+      <div style={{ paddingBottom:16 }}>
+        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
+          letterSpacing:"0.12em", marginBottom:10 }}>{t.withdrawTitle}</div>
+        {wdSent ? (
+          <div style={{ background:"rgba(52,211,153,0.08)", border:"1px solid rgba(52,211,153,0.3)",
+            borderRadius:16, padding:"18px", textAlign:"center" }}>
+            <div style={{ fontSize:24, marginBottom:8 }}>✅</div>
+            <div style={{ fontWeight:800, fontSize:15, color:"#34D399", marginBottom:4 }}>{t.withdrawSent}</div>
+            <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)" }}>{t.withdrawNote}</div>
+            <button onClick={() => setWdSent(false)} style={{ marginTop:12, background:"rgba(255,255,255,0.07)",
+              border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"8px 16px",
+              color:"rgba(255,255,255,0.6)", cursor:"pointer", fontFamily:"inherit", fontSize:12 }}>
+              Новая заявка
+            </button>
+          </div>
+        ) : (
+          <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
+            borderRadius:16, padding:"14px 16px" }}>
+            <input value={wdWallet} onChange={e => setWdWallet(e.target.value)}
+              placeholder={t.withdrawWalletPlaceholder}
+              style={{ width:"100%", background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
+                borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"monospace",
+                outline:"none", marginBottom:8, boxSizing:"border-box" }}/>
+            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+              <input value={wdAmount} onChange={e => setWdAmount(e.target.value)} type="number"
+                min="0.01" max={balance} step="0.01"
+                placeholder={t.withdrawAmountPlaceholder}
+                style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
+                  borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13, fontFamily:"inherit",
+                  outline:"none" }}/>
+              <button onClick={() => setWdAmount(balance.toFixed(2))} style={{
+                background:"rgba(255,214,0,0.1)", border:"1px solid rgba(255,214,0,0.25)",
+                borderRadius:10, padding:"10px 12px", color:"#FFD600", fontWeight:800,
+                fontSize:12, cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>MAX</button>
+            </div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginBottom:10 }}>
+              Доступно: {balance.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})} FAHHHH
+            </div>
+            <button onClick={submitWithdraw}
+              disabled={wdSending || !wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance}
+              style={{ width:"100%", border:"none", borderRadius:12, padding:"13px",
+                background: (!wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance)
+                  ? "rgba(255,255,255,0.07)" : "linear-gradient(180deg,#FFE838,#FFA000)",
+                color: (!wdWallet.trim() || !parseFloat(wdAmount) || parseFloat(wdAmount) > balance)
+                  ? "rgba(255,255,255,0.25)" : "#5C3A06",
+                fontWeight:900, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+              {wdSending ? "..." : t.withdrawBtn}
+            </button>
           </div>
         )}
       </div>
@@ -559,20 +677,24 @@ function LangModal({ current, onSelect, onClose }) {
 
 /* ── Main App ──────────────────────────────────────────── */
 export default function App() {
-  const [balance,   setBalance]   = useState(0);
-  const [taps,      setTaps]      = useState(0);
-  const [energy,    setEnergy]    = useState(MAX_ENERGY);
-  const [floats,    setFloats]    = useState([]);
-  const [tilt,      setTilt]      = useState({ x:0, y:0 });
-  const [screaming, setScreaming] = useState(false);
-  const [tab,       setTab]       = useState("mine");
-  const [leagueIdx, setLeagueIdx] = useState(0);
-  const [copied,    setCopied]    = useState(false);
-  const [saved,     setSaved]     = useState(false);
-  const [lang,      setLang]      = useState("ru");
-  const [showLang,  setShowLang]  = useState(false);
-  const [userId,    setUserId]    = useState("");
-  const [userName,  setUserName]  = useState("");
+  const [balance,          setBalance]          = useState(0);
+  const [taps,             setTaps]             = useState(0);
+  const [energy,           setEnergy]           = useState(MAX_ENERGY);
+  const [floats,           setFloats]           = useState([]);
+  const [tilt,             setTilt]             = useState({ x:0, y:0 });
+  const [screaming,        setScreaming]        = useState(false);
+  const [tab,              setTab]              = useState("mine");
+  const [leagueIdx,        setLeagueIdx]        = useState(0);
+  const [copied,           setCopied]           = useState(false);
+  const [saved,            setSaved]            = useState(false);
+  const [lang,             setLang]             = useState("ru");
+  const [showLang,         setShowLang]         = useState(false);
+  const [userId,           setUserId]           = useState("");
+  const [userName,         setUserName]         = useState("");
+  const [holderBoostUntil, setHolderBoostUntil] = useState(() => {
+    const v = LS.get("fahhhh-holder-boost", 0);
+    return v > Date.now() ? v : 0;
+  });
 
   const audioPool    = useRef([]);
   const poolIdx      = useRef(0);
@@ -582,7 +704,11 @@ export default function App() {
   const submitTimer  = useRef(null);
   const coinRef      = useRef(null);
   const tiltTimer    = useRef(null);
-  const screamingRef = useRef(false);
+  const screamingRef  = useRef(false);
+  const maxEnergyRef  = useRef(MAX_ENERGY);
+
+  const maxEnergy = holderBoostUntil > Date.now() ? HOLDER_MAX_ENERGY : MAX_ENERGY;
+  maxEnergyRef.current = maxEnergy;
 
   const t = T[lang] || T.ru;
 
@@ -614,9 +740,22 @@ export default function App() {
 
   /* ── энергия ── */
   useEffect(() => {
-    const t = setInterval(() => setEnergy(e => Math.min(MAX_ENERGY, e + 3)), 1000);
+    const t = setInterval(() => setEnergy(e => Math.min(maxEnergyRef.current, e + 3)), 1000);
     return () => clearInterval(t);
   }, []);
+
+  /* ── истечение буста холдера ── */
+  useEffect(() => {
+    if (!holderBoostUntil) return;
+    const remaining = holderBoostUntil - Date.now();
+    if (remaining <= 0) { setHolderBoostUntil(0); return; }
+    const tid = setTimeout(() => {
+      setHolderBoostUntil(0);
+      LS.set("fahhhh-holder-boost", 0);
+      setEnergy(e => Math.min(e, MAX_ENERGY));
+    }, remaining);
+    return () => clearTimeout(tid);
+  }, [holderBoostUntil]);
 
   /* ── аудио ── */
   useEffect(() => {
@@ -668,6 +807,13 @@ export default function App() {
     dbSetScore({ userId, name, balance, taps });
   }, [userId, balance, taps]);
 
+  const handleHolderBoost = useCallback(() => {
+    const expiry = Date.now() + HOLDER_BOOST_MS;
+    setHolderBoostUntil(expiry);
+    LS.set("fahhhh-holder-boost", expiry);
+    setEnergy(HOLDER_MAX_ENERGY);
+  }, []);
+
   /* ── тап ── */
   const handleTap = useCallback((e) => {
     if (energy < 1) return;
@@ -717,7 +863,7 @@ export default function App() {
   const league    = LEAGUES[leagueIdx];
   const nextL     = LEAGUES[leagueIdx + 1];
   const lgPct     = nextL ? Math.min(100, ((balance - league.min) / (nextL.min - league.min)) * 100) : 100;
-  const energyPct = (energy / MAX_ENERGY) * 100;
+  const energyPct = (energy / maxEnergy) * 100;
   const currentLang = LANGUAGES.find(l => l.code === lang) || LANGUAGES[0];
 
   const LangBtn = () => (
@@ -801,7 +947,8 @@ export default function App() {
       )}
 
       {/* Контент вкладок */}
-      {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}/>}
+      {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}
+        userId={userId} userName={userName} onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
       {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance}/>}
 
@@ -880,10 +1027,10 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",gap:7 }}>
                 <Zap size={22} color="#FFD600" fill="#FFD600"/>
                 <span style={{ fontSize:18,fontWeight:800,fontVariantNumeric:"tabular-nums" }}>
-                  {energy}<span style={{ color:"rgba(255,255,255,0.38)",fontWeight:600 }}>/{MAX_ENERGY}</span>
+                  {energy}<span style={{ color:"rgba(255,255,255,0.38)",fontWeight:600 }}>/{maxEnergy}</span>
                 </span>
               </div>
-              <button onClick={() => setEnergy(MAX_ENERGY)} style={{
+              <button onClick={() => setEnergy(maxEnergy)} style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",
                 borderRadius:14,padding:"9px 20px",color:"#fff",fontWeight:800,fontSize:15,
                 display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontFamily:"inherit" }}>
