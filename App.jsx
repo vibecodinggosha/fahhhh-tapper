@@ -16,22 +16,29 @@ const API_URL = import.meta.env.VITE_API_URL || "";
 
 async function dbGetLeaderboard() {
   if (!API_URL) return [];
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 5000);
   try {
-    const res = await fetch(`${API_URL}/leaderboard`);
+    const res = await fetch(`${API_URL}/leaderboard`, { signal: ctrl.signal });
     const { players } = await res.json();
     return players || [];
   } catch { return []; }
+  finally { clearTimeout(tid); }
 }
 
 async function dbSetScore({ userId, name, balance, taps }) {
   if (!API_URL || !userId) return;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 5000);
   try {
     await fetch(`${API_URL}/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, name, balance, taps }),
+      signal: ctrl.signal,
     });
   } catch {}
+  finally { clearTimeout(tid); }
 }
 
 const LEAGUES = [
