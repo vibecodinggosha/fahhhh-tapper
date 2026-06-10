@@ -8,6 +8,8 @@ import { FAAAH_SRC } from "./audio.js";
 
 const CONTRACT          = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
 const PER_TAP           = 0.05;
+const BOT_USERNAME      = import.meta.env.VITE_BOT_USERNAME || "";
+const REF_BOOST_MS      = 30 * 60 * 1000;
 const MAX_ENERGY        = 1000;
 const HOLDER_MAX_ENERGY = 2000;
 const HOLDER_BOOST_MS   = 30 * 60 * 1000;
@@ -40,6 +42,35 @@ async function dbSetScore({ userId, name, balance, taps }) {
       signal: ctrl.signal,
     });
   } catch {}
+  finally { clearTimeout(tid); }
+}
+
+async function checkRefBoost(userId) {
+  if (!API_URL || !userId) return 0;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(`${API_URL}/check-ref/${encodeURIComponent(userId)}`, { signal: ctrl.signal });
+    const data = await res.json();
+    return data.refBoostUntil || 0;
+  } catch { return 0; }
+  finally { clearTimeout(tid); }
+}
+
+async function sendReferral(referrerId, newUserId, newUserName) {
+  if (!API_URL || !referrerId || !newUserId) return 0;
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(`${API_URL}/referral`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ referrerId, newUserId, newUserName }),
+      signal: ctrl.signal,
+    });
+    const data = await res.json();
+    return data.refBoostUntil || 0;
+  } catch { return 0; }
   finally { clearTimeout(tid); }
 }
 
@@ -79,6 +110,9 @@ const T = {
     checkHolder:"Проверить холдинг", checkBtn:"Проверить",
     isHolder:"Холдер FAHHHH", notHolder:"Не холдер", noToken:"На этом кошельке нет FAHHHH",
     holderBoostBtn:"Активировать бонус (+1000 энергии на 30 мин)", holderBoostDone:"Бонус активирован! ⚡",
+    refTitle:"Пригласи друга", refDesc:"За каждого реферала — x2 бонус на 30 минут (суммируется)",
+    refLinkLabel:"Твоя реферальная ссылка", refBoostActive: n => `⚡ x2 активен · ${n} мин`,
+    refCopy:"Скопировать ссылку", refCopied:"Скопировано!",
     withdrawTitle:"Вывод токенов", withdrawWalletPlaceholder:"TON-кошелёк для получения",
     withdrawAmountPlaceholder:"Количество FAHHHH", withdrawBtn:"Отправить заявку",
     withdrawSent:"Заявка отправлена! Ожидай сообщения.", withdrawNote:"Обработка вручную, обычно до 24 ч.",
@@ -103,6 +137,9 @@ const T = {
     checkHolder:"Check holdings", checkBtn:"Check",
     isHolder:"FAHHHH Holder", notHolder:"Not a holder", noToken:"No FAHHHH on this wallet",
     holderBoostBtn:"Activate bonus (+1000 energy for 30 min)", holderBoostDone:"Bonus activated! ⚡",
+    refTitle:"Invite a friend", refDesc:"Each referral gives you x2 bonus for 30 min (stacks)",
+    refLinkLabel:"Your referral link", refBoostActive: n => `⚡ x2 active · ${n} min`,
+    refCopy:"Copy link", refCopied:"Copied!",
     withdrawTitle:"Withdraw tokens", withdrawWalletPlaceholder:"TON wallet address",
     withdrawAmountPlaceholder:"Amount of FAHHHH", withdrawBtn:"Submit request",
     withdrawSent:"Request sent! Await a message.", withdrawNote:"Processed manually, usually within 24h.",
@@ -127,6 +164,9 @@ const T = {
     checkHolder:"查询持仓", checkBtn:"查询",
     isHolder:"FAHHHH持有者", notHolder:"非持有者", noToken:"此钱包无FAHHHH",
     holderBoostBtn:"激活奖励 (+1000能量30分钟)", holderBoostDone:"奖励已激活！⚡",
+    refTitle:"邀请好友", refDesc:"每位推荐人给你30分钟x2奖励（可叠加）",
+    refLinkLabel:"你的推荐链接", refBoostActive: n => `⚡ x2激活 · ${n}分钟`,
+    refCopy:"复制链接", refCopied:"已复制！",
     withdrawTitle:"提取代币", withdrawWalletPlaceholder:"TON钱包地址",
     withdrawAmountPlaceholder:"FAHHHH数量", withdrawBtn:"提交申请",
     withdrawSent:"申请已提交！", withdrawNote:"人工处理，通常24小时内。",
@@ -151,6 +191,9 @@ const T = {
     checkHolder:"التحقق من الحيازة", checkBtn:"تحقق",
     isHolder:"حامل FAHHHH", notHolder:"ليس حاملاً", noToken:"لا يوجد FAHHHH في هذه المحفظة",
     holderBoostBtn:"تفعيل المكافأة (+1000 طاقة لمدة 30 دقيقة)", holderBoostDone:"تم تفعيل المكافأة! ⚡",
+    refTitle:"ادعُ صديقاً", refDesc:"كل إحالة تمنحك مكافأة x2 لمدة 30 دقيقة (تتراكم)",
+    refLinkLabel:"رابط الإحالة الخاص بك", refBoostActive: n => `⚡ x2 نشط · ${n} دقيقة`,
+    refCopy:"نسخ الرابط", refCopied:"تم النسخ!",
     withdrawTitle:"سحب الرموز", withdrawWalletPlaceholder:"محفظة TON",
     withdrawAmountPlaceholder:"كمية FAHHHH", withdrawBtn:"إرسال الطلب",
     withdrawSent:"تم إرسال الطلب!", withdrawNote:"معالجة يدوية، خلال 24 ساعة.",
@@ -175,6 +218,9 @@ const T = {
     checkHolder:"होल्डिंग जांचें", checkBtn:"जांचें",
     isHolder:"FAHHHH होल्डर", notHolder:"होल्डर नहीं", noToken:"इस वॉलेट में FAHHHH नहीं",
     holderBoostBtn:"बोनस सक्रिय करें (+1000 ऊर्जा 30 मिनट)", holderBoostDone:"बोनस सक्रिय! ⚡",
+    refTitle:"दोस्त को आमंत्रित करें", refDesc:"हर रेफरल पर 30 मिनट x2 बोनस (जुड़ता है)",
+    refLinkLabel:"आपका रेफरल लिंक", refBoostActive: n => `⚡ x2 एक्टिव · ${n} मिनट`,
+    refCopy:"लिंक कॉपी करें", refCopied:"कॉपी हो गया!",
     withdrawTitle:"टोकन निकालें", withdrawWalletPlaceholder:"TON वॉलेट पता",
     withdrawAmountPlaceholder:"FAHHHH की संख्या", withdrawBtn:"अनुरोध भेजें",
     withdrawSent:"अनुरोध भेजा गया!", withdrawNote:"24 घंटे के भीतर मैन्युअल प्रोसेसिंग।",
@@ -201,11 +247,12 @@ const LS = {
 };
 
 /* ── Exchange Tab ──────────────────────────────────────── */
-function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoost, holderBoostUntil, onWithdraw }) {
+function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoost, holderBoostUntil, onWithdraw, refBoostUntil }) {
   const [wallet,       setWallet]       = useState("");
   const [checking,     setChecking]     = useState(false);
   const [result,       setResult]       = useState(null);
   const [boostUsed,    setBoostUsed]    = useState(false);
+  const [refCopied,    setRefCopied]    = useState(false);
   const [wdWallet,     setWdWallet]     = useState("");
   const [wdAmount,     setWdAmount]     = useState("");
   const [wdSending,    setWdSending]    = useState(false);
@@ -397,6 +444,55 @@ function ExchangeTab({ balance, copied, onCopy, t, userId, userName, onHolderBoo
             <span style={{ fontSize:13, color:"rgba(255,200,80,0.9)" }}>{result.error}</span>
           </div>
         )}
+      </div>
+
+      {/* ── Рефералы ── */}
+      <div style={{ paddingBottom:4 }}>
+        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
+          letterSpacing:"0.12em", marginBottom:10 }}>{t.refTitle}</div>
+        <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
+          borderRadius:16, padding:"16px" }}>
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)", marginBottom:12, lineHeight:1.5 }}>
+            {t.refDesc}
+          </div>
+          {refBoostUntil > Date.now() && (
+            <div style={{ background:"rgba(255,214,0,0.1)", border:"1px solid rgba(255,214,0,0.3)",
+              borderRadius:10, padding:"8px 12px", marginBottom:12, fontSize:13, fontWeight:800, color:"#FFD600" }}>
+              {t.refBoostActive(Math.ceil((refBoostUntil - Date.now()) / 60000))}
+            </div>
+          )}
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginBottom:6 }}>{t.refLinkLabel}</div>
+          {BOT_USERNAME && userId ? (
+            <div style={{ display:"flex", gap:8 }}>
+              <code style={{ flex:1, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)",
+                borderRadius:10, padding:"9px 12px", fontSize:11, color:"rgba(255,255,255,0.7)",
+                wordBreak:"break-all", fontFamily:"monospace" }}>
+                {`https://t.me/${BOT_USERNAME}?startapp=ref_${userId}`}
+              </code>
+              <button onClick={async () => {
+                const link = `https://t.me/${BOT_USERNAME}?startapp=ref_${userId}`;
+                try { await navigator.clipboard.writeText(link); } catch {
+                  const ta = document.createElement("textarea");
+                  ta.value = link; document.body.appendChild(ta); ta.select();
+                  document.execCommand("copy"); document.body.removeChild(ta);
+                }
+                setRefCopied(true); setTimeout(() => setRefCopied(false), 1500);
+              }} style={{ background: refCopied ? "rgba(46,168,79,0.2)" : "rgba(255,255,255,0.08)",
+                border:`1px solid ${refCopied ? "rgba(46,168,79,0.4)" : "rgba(255,255,255,0.12)"}`,
+                borderRadius:10, padding:"9px 12px", cursor:"pointer",
+                color: refCopied ? "#2EA84F" : "#fff", fontWeight:800, fontSize:12,
+                fontFamily:"inherit", flexShrink:0, display:"flex", alignItems:"center", gap:5 }}>
+                {refCopied ? <Check size={13}/> : <Copy size={13}/>}
+                {refCopied ? t.refCopied : t.refCopy}
+              </button>
+            </div>
+          ) : (
+            <div style={{ fontSize:12, color:"rgba(255,255,255,0.35)", background:"rgba(255,255,255,0.04)",
+              borderRadius:10, padding:"10px 12px" }}>
+              Твой ref-код: <code style={{ fontFamily:"monospace", color:"#FFD600" }}>ref_{userId}</code>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Вывод токенов ── */}
@@ -712,6 +808,10 @@ export default function App() {
     const v = LS.get("fahhhh-boost-info", { count: 0, day: "" });
     return v.day === todayISO() ? v : { count: 0, day: todayISO() };
   });
+  const [refBoostUntil, setRefBoostUntil] = useState(() => {
+    const v = LS.get("fahhhh-ref-boost", 0);
+    return v > Date.now() ? v : 0;
+  });
 
   const audioPool    = useRef([]);
   const poolIdx      = useRef(0);
@@ -724,10 +824,13 @@ export default function App() {
   const screamingRef  = useRef(false);
   const maxEnergyRef  = useRef(MAX_ENERGY);
   const energyRef     = useRef(energy);
+  const tapValueRef   = useRef(PER_TAP);
 
   const maxEnergy = holderBoostUntil > Date.now() ? HOLDER_MAX_ENERGY : MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
   energyRef.current = energy;
+  const tapValue = refBoostUntil > Date.now() ? +(PER_TAP * 2).toFixed(2) : PER_TAP;
+  tapValueRef.current = tapValue;
 
   const t = T[lang] || T.ru;
 
@@ -762,6 +865,15 @@ export default function App() {
     const t = setInterval(() => setEnergy(e => Math.min(maxEnergyRef.current, e + maxEnergyRef.current / 1800)), 1000);
     return () => clearInterval(t);
   }, []);
+
+  /* ── истечение реф-буста ── */
+  useEffect(() => {
+    if (!refBoostUntil) return;
+    const remaining = refBoostUntil - Date.now();
+    if (remaining <= 0) { setRefBoostUntil(0); return; }
+    const tid = setTimeout(() => { setRefBoostUntil(0); LS.set("fahhhh-ref-boost", 0); }, remaining);
+    return () => clearTimeout(tid);
+  }, [refBoostUntil]);
 
   /* ── сохранение энергии ── */
   useEffect(() => {
@@ -823,6 +935,33 @@ export default function App() {
     setUserId(id);
   }, []);
 
+  /* ── реферальная система ── */
+  useEffect(() => {
+    if (!userId) return;
+    // Проверяем серверный буст
+    checkRefBoost(userId).then(serverUntil => {
+      if (serverUntil > Date.now()) {
+        setRefBoostUntil(serverUntil);
+        LS.set("fahhhh-ref-boost", serverUntil);
+      }
+    });
+    // Обрабатываем входящий реферал
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || "";
+    if (startParam.startsWith("ref_")) {
+      const referrerId = startParam.slice(4);
+      if (referrerId && referrerId !== userId && !LS.get("fahhhh-referred-by", null)) {
+        LS.set("fahhhh-referred-by", referrerId);
+        sendReferral(referrerId, userId, window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "")
+          .then(serverUntil => {
+            if (serverUntil > Date.now()) {
+              setRefBoostUntil(serverUntil);
+              LS.set("fahhhh-ref-boost", serverUntil);
+            }
+          });
+      }
+    }
+  }, [userId]);
+
   /* ── отправка в лидерборд ── */
   useEffect(() => {
     if (!userId || balance <= 0 || !userName) return;
@@ -861,8 +1000,9 @@ export default function App() {
   /* ── тап ── */
   const handleTap = useCallback((e) => {
     if (energy < 1) return;
+    const tv = tapValueRef.current;
     playSound();
-    setBalance(b => +(b + PER_TAP).toFixed(2));
+    setBalance(b => +(b + tv).toFixed(2));
     setTaps(t => t + 1);
     setEnergy(en => Math.max(0, en - 1));
 
@@ -890,7 +1030,7 @@ export default function App() {
     const id = floatId.current++;
     setFloats(f => {
       const trimmed = f.length >= 6 ? f.slice(-5) : f;
-      return [...trimmed, { id, x, y }];
+      return [...trimmed, { id, x, y, val: tv }];
     });
     setTimeout(() => setFloats(f => f.filter(p => p.id !== id)), 900);
   }, [energy, playSound]);
@@ -978,6 +1118,13 @@ export default function App() {
               </span>
             </div>
             <div style={{ fontSize:12,color:"rgba(255,255,255,0.35)",marginTop:4 }}>{t.taps(taps)}</div>
+            {refBoostUntil > Date.now() && (
+              <div style={{ display:"inline-flex",alignItems:"center",gap:5,marginTop:6,
+                background:"rgba(255,214,0,0.12)",border:"1px solid rgba(255,214,0,0.3)",
+                borderRadius:99,padding:"4px 12px",fontSize:13,fontWeight:900,color:"#FFD600" }}>
+                ⚡ x2 · {Math.ceil((refBoostUntil - Date.now()) / 60000)} мин
+              </div>
+            )}
           </div>
         </>
       )}
@@ -993,7 +1140,8 @@ export default function App() {
       {/* Контент вкладок */}
       {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}
         userId={userId} userName={userName} onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}
-        onWithdraw={amt => setBalance(b => +Math.max(0, b - amt).toFixed(2))}/>}
+        onWithdraw={amt => setBalance(b => +Math.max(0, b - amt).toFixed(2))}
+        refBoostUntil={refBoostUntil}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
       {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance}/>}
 
@@ -1063,7 +1211,7 @@ export default function App() {
                 <span key={f.id} style={{ position:"absolute",left:f.x,top:f.y,
                   transform:"translate(-50%,-50%)",fontWeight:900,fontSize:28,color:"#fff",
                   textShadow:"0 2px 8px rgba(0,0,0,0.75)",animation:"floatUp 0.9s ease-out forwards",
-                  pointerEvents:"none",whiteSpace:"nowrap",fontFamily:"inherit" }}>+{PER_TAP}</span>
+                  pointerEvents:"none",whiteSpace:"nowrap",fontFamily:"inherit" }}>+{f.val}</span>
               ))}
             </button>
           </div>
