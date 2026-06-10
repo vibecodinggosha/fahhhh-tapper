@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Pickaxe, ArrowLeftRight, BookOpen, Copy, Check,
   Zap, Trophy, Rocket, ExternalLink, Globe, ChevronDown,
-  Medal, RefreshCw, User, Star, Users, Wallet,
+  Medal, RefreshCw, User, Star, Users, Wallet, ClipboardList,
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
@@ -530,7 +530,9 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
     return (
       <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
         justifyContent:"center", padding:"0 32px" }}>
-        <div style={{ fontSize:48, marginBottom:16 }}>🏆</div>
+        <div style={{ marginBottom:16 }}>
+          <Trophy size={56} color="#FFD600" strokeWidth={1.5}/>
+        </div>
         <div style={{ fontSize:20, fontWeight:900, marginBottom:8, textAlign:"center" }}>Введи своё имя</div>
         <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:24, textAlign:"center" }}>
           Оно будет в таблице лидеров
@@ -616,7 +618,9 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
           <div style={{ textAlign:"center", padding:"40px 0", color:"rgba(255,255,255,0.3)" }}>Загрузка...</div>
         ) : entries.length === 0 ? (
           <div style={{ textAlign:"center", padding:"40px 0" }}>
-            <div style={{ fontSize:40, marginBottom:12 }}>🏜️</div>
+            <div style={{ marginBottom:12 }}>
+              <Medal size={44} color="rgba(255,255,255,0.15)" strokeWidth={1.5}/>
+            </div>
             <div style={{ fontSize:15, fontWeight:700, marginBottom:6 }}>Пока пусто</div>
             <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)" }}>Тапай — ты будешь первым!</div>
           </div>
@@ -803,7 +807,9 @@ function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
       ) : referralList.length === 0 ? (
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)",
           borderRadius:14, padding:"24px", textAlign:"center" }}>
-          <div style={{ fontSize:32, marginBottom:8 }}>👥</div>
+          <div style={{ fontSize:32, marginBottom:8 }}>
+            <Users size={48} color="rgba(255,255,255,0.2)" strokeWidth={1.5}/>
+          </div>
           <div style={{ fontSize:14, color:"rgba(255,255,255,0.4)" }}>{t.refNone}</div>
         </div>
       ) : referralList.map((r, i) => (
@@ -926,7 +932,9 @@ function WithdrawTab({ balance, t, userId, userName, onWithdraw }) {
       {history.length === 0 ? (
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)",
           borderRadius:14, padding:"24px", textAlign:"center" }}>
-          <div style={{ fontSize:32, marginBottom:8 }}>📋</div>
+          <div style={{ fontSize:32, marginBottom:8 }}>
+            <ClipboardList size={48} color="rgba(255,255,255,0.2)" strokeWidth={1.5}/>
+          </div>
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)" }}>{t.wdHistoryEmpty}</div>
         </div>
       ) : history.map((entry, i) => {
@@ -1460,27 +1468,60 @@ export default function App() {
       )}
 
       {/* Навигация */}
-      <nav style={{ display:"flex",background:"rgba(255,255,255,0.04)",borderTop:"1px solid rgba(255,255,255,0.07)",flexShrink:0 }}>
+      <nav style={{ display:"flex", background:"rgba(0,0,0,0.96)",
+        borderTop:"1px solid rgba(255,255,255,0.08)", flexShrink:0,
+        position:"relative", overflow:"visible", zIndex:10, minHeight:62 }}>
         {[
-          { id:"exchange",    Icon:ArrowLeftRight },
-          { id:"mine",        Icon:Pickaxe        },
-          { id:"earn",        Icon:BookOpen       },
-          { id:"friends",     Icon:Users          },
-          { id:"leaderboard", Icon:Medal          },
-          { id:"withdraw",    Icon:Wallet         },
-        ].map(({ id, Icon }) => {
+          { id:"exchange",    Icon:ArrowLeftRight, fl:"1.5" },
+          { id:"earn",        Icon:BookOpen,       fl:"1.5" },
+          { id:"mine",        Icon:Pickaxe,        fl:"0 0 72px", fab:true },
+          { id:"friends",     Icon:Users,          fl:"1"   },
+          { id:"leaderboard", Icon:Medal,          fl:"1"   },
+          { id:"withdraw",    Icon:Wallet,         fl:"1"   },
+        ].map(({ id, Icon, fl, fab }) => {
           const active = id === tab;
           const label  = TABS_LABELS[id][lang];
+
+          if (fab) {
+            return (
+              <div key={id} style={{ flex:fl, alignSelf:"stretch",
+                display:"flex", justifyContent:"center", position:"relative" }}>
+                <button onClick={() => setTab(id)} style={{
+                  position:"absolute", bottom:6, left:"50%", transform:"translateX(-50%)",
+                  width:62, height:62, borderRadius:"50%",
+                  background: active
+                    ? "linear-gradient(145deg,#FFE838 0%,#FFA000 100%)"
+                    : "linear-gradient(145deg,#2a2a2a,#181818)",
+                  border:"4px solid #000",
+                  display:"flex", flexDirection:"column", alignItems:"center",
+                  justifyContent:"center", gap:2, cursor:"pointer", fontFamily:"inherit",
+                  color: active ? "#5C3A06" : "rgba(255,255,255,0.78)",
+                  boxShadow: active
+                    ? "0 0 28px rgba(255,214,0,0.55), 0 0 0 1px rgba(255,214,0,0.25), 0 4px 18px rgba(0,0,0,0.6)"
+                    : "0 4px 18px rgba(0,0,0,0.7)",
+                  transition:"all .2s", zIndex:11 }}>
+                  <Icon size={24} strokeWidth={active ? 2.5 : 2}/>
+                  <span style={{ fontSize:9, fontWeight:900, letterSpacing:0.5, lineHeight:1 }}>
+                    {label}
+                  </span>
+                </button>
+              </div>
+            );
+          }
+
           return (
             <button key={id} onClick={() => setTab(id)} style={{
-              flex:1,border:"none",background:"none",padding:"10px 4px 12px",
-              display:"flex",flexDirection:"column",alignItems:"center",gap:4,
-              cursor:"pointer",fontFamily:"inherit",
+              flex:fl, border:"none", background:"none", padding:"10px 2px 12px",
+              display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+              cursor:"pointer", fontFamily:"inherit", minWidth:0,
               color: active ? "#FFD600" : "rgba(255,255,255,0.38)",
               transition:"color .15s", position:"relative" }}>
-              {active && <div style={{ position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:28,height:2,borderRadius:99,background:"#FFD600" }}/>}
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.8}/>
-              <span style={{ fontSize:10,fontWeight:active?800:600,letterSpacing:0.2 }}>{label}</span>
+              {active && <div style={{ position:"absolute", top:0, left:"50%",
+                transform:"translateX(-50%)", width:24, height:2, borderRadius:99, background:"#FFD600" }}/>}
+              <Icon size={19} strokeWidth={active ? 2.5 : 1.8}/>
+              <span style={{ fontSize:9, fontWeight:active?800:600, letterSpacing:0.2, textAlign:"center" }}>
+                {label}
+              </span>
             </button>
           );
         })}
