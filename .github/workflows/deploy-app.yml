@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install & Build
         run: |
@@ -33,6 +33,7 @@ jobs:
           npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_BOT_USERNAME: ${{ secrets.VITE_BOT_USERNAME }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
