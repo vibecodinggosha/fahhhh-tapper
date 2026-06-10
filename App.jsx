@@ -794,8 +794,6 @@ export default function App() {
     const elapsed = (Date.now() - saved.savedAt) / 1000;
     return Math.min(MAX_ENERGY, (saved.value ?? MAX_ENERGY) + elapsed * MAX_ENERGY / 1800);
   });
-  const [floats,           setFloats]           = useState([]);
-  const [tilt,             setTilt]             = useState({ x:0, y:0 });
   const [screaming,        setScreaming]        = useState(false);
   const [tab,              setTab]              = useState("mine");
   const [leagueIdx,        setLeagueIdx]        = useState(0);
@@ -818,18 +816,18 @@ export default function App() {
     return v > Date.now() ? v : 0;
   });
 
-  const audioPool    = useRef([]);
-  const poolIdx      = useRef(0);
-  const floatId      = useRef(0);
-  const saveTimer    = useRef(null);
-  const screamTimer  = useRef(null);
-  const submitTimer  = useRef(null);
-  const coinRef      = useRef(null);
-  const tiltTimer    = useRef(null);
-  const screamingRef  = useRef(false);
-  const maxEnergyRef  = useRef(MAX_ENERGY);
-  const energyRef     = useRef(energy);
-  const tapValueRef   = useRef(PER_TAP);
+  const audioPool        = useRef([]);
+  const poolIdx          = useRef(0);
+  const saveTimer        = useRef(null);
+  const screamTimer      = useRef(null);
+  const submitTimer      = useRef(null);
+  const coinRef          = useRef(null);
+  const tiltTimer        = useRef(null);
+  const floatContainerRef = useRef(null);
+  const screamingRef     = useRef(false);
+  const maxEnergyRef     = useRef(MAX_ENERGY);
+  const energyRef        = useRef(energy);
+  const tapValueRef      = useRef(PER_TAP);
 
   const maxEnergy = holderBoostUntil > Date.now() ? HOLDER_MAX_ENERGY : MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
@@ -1002,9 +1000,23 @@ export default function App() {
     setEnergy(maxEnergyRef.current);
   }, [boostToday]);
 
+  /* ── прямой DOM: плавающий "+N" ── */
+  const spawnFloat = useCallback((x, y, val) => {
+    const c = floatContainerRef.current;
+    if (!c) return;
+    if (c.children.length >= 6) c.removeChild(c.firstChild);
+    const el = document.createElement("span");
+    el.textContent = "+" + val;
+    el.style.cssText = `position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);` +
+      `font-weight:900;font-size:28px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.75);` +
+      `animation:floatUp .9s ease-out forwards;pointer-events:none;white-space:nowrap;font-family:inherit;`;
+    c.appendChild(el);
+    setTimeout(() => { try { c.removeChild(el); } catch {} }, 950);
+  }, []);
+
   /* ── тап ── */
   const handleTap = useCallback((e) => {
-    if (energy < 1) return;
+    if (energyRef.current < 1) return;
     const tv = tapValueRef.current;
     playSound();
     setBalance(b => +(b + tv).toFixed(2));
@@ -1018,9 +1030,15 @@ export default function App() {
     const y  = rect ? cy - rect.top   : 145;
     const dx = rect ? (x - rect.width/2)  / (rect.width/2)  : 0;
     const dy = rect ? (y - rect.height/2) / (rect.height/2) : 0;
-    setTilt({ x: -dy*18, y: dx*18 });
+
+    // Тилт — прямой DOM через CSS custom property (React не перезапишет)
+    coinRef.current?.style.setProperty("--cx", `${-dy * 18}deg`);
+    coinRef.current?.style.setProperty("--cy", `${dx * 18}deg`);
     clearTimeout(tiltTimer.current);
-    tiltTimer.current = setTimeout(() => setTilt({ x:0, y:0 }), 130);
+    tiltTimer.current = setTimeout(() => {
+      coinRef.current?.style.setProperty("--cx", "0deg");
+      coinRef.current?.style.setProperty("--cy", "0deg");
+    }, 130);
 
     if (!screamingRef.current) {
       screamingRef.current = true;
@@ -1032,13 +1050,9 @@ export default function App() {
       setScreaming(false);
     }, SCREAM_MS);
 
-    const id = floatId.current++;
-    setFloats(f => {
-      const trimmed = f.length >= 6 ? f.slice(-5) : f;
-      return [...trimmed, { id, x, y, val: tv }];
-    });
-    setTimeout(() => setFloats(f => f.filter(p => p.id !== id)), 900);
-  }, [energy, playSound]);
+    // Флоат — прямой DOM, без React state
+    spawnFloat(x, y, tv);
+  }, [playSound, spawnFloat]);
 
   const copyContract = async () => {
     try { await navigator.clipboard.writeText(CONTRACT); } catch {
@@ -1083,6 +1097,7 @@ export default function App() {
         @keyframes toastPop { from{opacity:0;transform:translateX(-50%) scale(0.85) translateY(8px)} to{opacity:1;transform:translateX(-50%) scale(1) translateY(0)} }
         .coin-shake { animation: coinShake 0.18s linear infinite; }
         .mouth-bounce { animation: mouthBounce 0.18s ease-in-out infinite; }
+        .coin-btn { transform: rotateX(var(--cx,0deg)) rotateY(var(--cy,0deg)); transition: transform 130ms ease; will-change: transform; }
         @media (prefers-reduced-motion:reduce) { *{animation:none!important;transition:none!important} }
       `}</style>
 
@@ -1155,15 +1170,13 @@ export default function App() {
         <>
           <div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",perspective:"900px",paddingBottom:4 }}>
             <button ref={coinRef} onPointerDown={handleTap} aria-label={t.tapBtn}
-              className={screaming ? "coin-shake" : undefined}
+              className={`coin-btn${screaming ? " coin-shake" : ""}`}
               style={{
               width:"min(72vw,290px)", height:"min(72vw,290px)",
               borderRadius:"50%", border:"none", padding:0, cursor:"pointer",
               position:"relative", background:"none",
-              transform:`rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-              transition:"transform 130ms ease", touchAction:"manipulation",
-              WebkitTapHighlightColor:"transparent",
-              willChange:"transform" }}>
+              touchAction:"manipulation",
+              WebkitTapHighlightColor:"transparent" }}>
               <div style={{ position:"absolute",inset:-24,borderRadius:"50%",
                 background: screaming ? "radial-gradient(circle,rgba(255,80,0,0.3) 0%,transparent 70%)" : "radial-gradient(circle,rgba(255,214,0,0.2) 0%,transparent 70%)",
                 filter:"blur(18px)",pointerEvents:"none",transition:"background 0.2s" }}/>
@@ -1212,12 +1225,7 @@ export default function App() {
                   fill={screaming ? "#fff" : "rgba(93,58,0,0.7)"}
                   style={{ transition:"fill 0.1s" }}>FAHHHH</text>
               </svg>
-              {floats.map(f => (
-                <span key={f.id} style={{ position:"absolute",left:f.x,top:f.y,
-                  transform:"translate(-50%,-50%)",fontWeight:900,fontSize:28,color:"#fff",
-                  textShadow:"0 2px 8px rgba(0,0,0,0.75)",animation:"floatUp 0.9s ease-out forwards",
-                  pointerEvents:"none",whiteSpace:"nowrap",fontFamily:"inherit" }}>+{f.val}</span>
-              ))}
+              <div ref={floatContainerRef} style={{ position:"absolute",inset:0,pointerEvents:"none",overflow:"visible" }}/>
             </button>
           </div>
           <div style={{ padding:"0 24px 10px", flexShrink:0 }}>
