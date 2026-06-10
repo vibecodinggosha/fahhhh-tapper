@@ -58,6 +58,43 @@ app.post("/withdraw", async (req, res) => {
   res.json({ ok: true });
 });
 
+const REF_BOOST_MS = 30 * 60 * 1000;
+
+// POST /referral — реферал пришёл, даём буст рефереру
+app.post("/referral", async (req, res) => {
+  const { referrerId, newUserId, newUserName } = req.body;
+  if (!referrerId || !newUserId || referrerId === newUserId)
+    return res.status(400).json({ error: "invalid" });
+
+  if (!players[referrerId]) {
+    players[referrerId] = { userId: referrerId, name: "Unknown", balance: 0, taps: 0, ts: Date.now() };
+  }
+  const p = players[referrerId];
+  const base = Math.max(p.refBoostUntil || 0, Date.now());
+  p.refBoostUntil = base + REF_BOOST_MS;
+  p.referrals = (p.referrals || 0) + 1;
+
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (token) {
+    const until = new Date(p.refBoostUntil).toLocaleTimeString("ru-RU", { hour:"2-digit", minute:"2-digit" });
+    const text = `🎉 Новый реферал!\n${newUserName || "Кто-то"} зашёл по твоей ссылке.\n⚡ x2 бонус активен до ${until}`;
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: referrerId, text }),
+      });
+    } catch {}
+  }
+  res.json({ ok: true, refBoostUntil: p.refBoostUntil });
+});
+
+// GET /check-ref/:userId — получить текущий буст реферала
+app.get("/check-ref/:userId", (req, res) => {
+  const p = players[req.params.userId];
+  res.json({ refBoostUntil: p?.refBoostUntil || 0, referrals: p?.referrals || 0 });
+});
+
 app.get("/health", (_, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => console.log(`FAHHHH API running on :${PORT}`));
