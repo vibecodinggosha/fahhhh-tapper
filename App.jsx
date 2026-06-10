@@ -125,6 +125,15 @@ const T = {
     withdrawSent:"Заявка отправлена! Ожидай сообщения.", withdrawNote:"Обработка вручную, обычно до 24 ч.",
     wdHistoryTitle:"История заявок", wdHistoryEmpty:"Заявок пока нет", wdNewRequest:"Новая заявка",
     wdAvailable:"Доступно", wdPending:"На рассмотрении",
+    minShort:"мин", walletHint:"Введи адрес TON-кошелька",
+    holderBalanceTpl: n => `Баланс: ${n} FAHHHH`,
+    refCodeLabel:"Твой реф-код",
+    lbTitle:"Таблица лидеров", lbEnterName:"Введи своё имя",
+    lbEnterNameSub:"Оно будет в таблице лидеров", lbJoinBtn:"Войти в топ",
+    lbYouLabel:"Ты", lbYou:"(ты)", lbLoading:"Загрузка...",
+    lbEmpty:"Пока пусто", lbEmptySub:"Тапай — ты будешь первым!",
+    lbTaps: n => n.toLocaleString("ru-RU") + " тапов",
+    lbNewNamePlaceholder:"Новое имя...",
     earnItems:[
       { title:"Тапай монету",          desc:`Нажимай на большую монету — каждый тап приносит +${PER_TAP} FAHHHH.` },
       { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Максимум 1000. С нуля восстанавливается за 30 минут." },
@@ -160,6 +169,15 @@ const T = {
     withdrawSent:"Request sent! Await a message.", withdrawNote:"Processed manually, usually within 24h.",
     wdHistoryTitle:"Request history", wdHistoryEmpty:"No requests yet", wdNewRequest:"New request",
     wdAvailable:"Available", wdPending:"Pending",
+    minShort:"min", walletHint:"Enter your TON wallet address",
+    holderBalanceTpl: n => `Balance: ${n} FAHHHH`,
+    refCodeLabel:"Your ref code",
+    lbTitle:"Leaderboard", lbEnterName:"Enter your name",
+    lbEnterNameSub:"It will show on the leaderboard", lbJoinBtn:"Join the top",
+    lbYouLabel:"You", lbYou:"(you)", lbLoading:"Loading...",
+    lbEmpty:"Nothing yet", lbEmptySub:"Tap — be the first!",
+    lbTaps: n => n.toLocaleString() + " taps",
+    lbNewNamePlaceholder:"New name...",
     earnItems:[
       { title:"Tap the coin",           desc:`Press the big coin — each tap gives +${PER_TAP} FAHHHH.` },
       { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills from zero in 30 minutes." },
@@ -195,6 +213,15 @@ const T = {
     withdrawSent:"申请已提交！", withdrawNote:"人工处理，通常24小时内。",
     wdHistoryTitle:"申请记录", wdHistoryEmpty:"暂无申请", wdNewRequest:"新申请",
     wdAvailable:"可用", wdPending:"待处理",
+    minShort:"分", walletHint:"输入TON钱包地址",
+    holderBalanceTpl: n => `余额: ${n} FAHHHH`,
+    refCodeLabel:"你的推荐码",
+    lbTitle:"排行榜", lbEnterName:"输入你的名字",
+    lbEnterNameSub:"将显示在排行榜上", lbJoinBtn:"加入榜单",
+    lbYouLabel:"我", lbYou:"(我)", lbLoading:"加载中...",
+    lbEmpty:"暂无数据", lbEmptySub:"点击成为第一！",
+    lbTaps: n => n.toLocaleString() + " 次",
+    lbNewNamePlaceholder:"新名字...",
     earnItems:[
       { title:"点击金币",      desc:`每次点击获得 +${PER_TAP} FAHHHH。` },
       { title:"注意能量",      desc:"每次消耗1能量，上限1000，从零恢复需30分钟。" },
@@ -230,6 +257,15 @@ const T = {
     withdrawSent:"تم إرسال الطلب!", withdrawNote:"معالجة يدوية، خلال 24 ساعة.",
     wdHistoryTitle:"سجل الطلبات", wdHistoryEmpty:"لا طلبات بعد", wdNewRequest:"طلب جديد",
     wdAvailable:"متاح", wdPending:"قيد المعالجة",
+    minShort:"د", walletHint:"أدخل عنوان محفظة TON",
+    holderBalanceTpl: n => `الرصيد: ${n} FAHHHH`,
+    refCodeLabel:"رمز الإحالة",
+    lbTitle:"المتصدرون", lbEnterName:"أدخل اسمك",
+    lbEnterNameSub:"سيظهر في قائمة المتصدرين", lbJoinBtn:"انضم للقائمة",
+    lbYouLabel:"أنت", lbYou:"(أنت)", lbLoading:"جارٍ التحميل...",
+    lbEmpty:"فارغ", lbEmptySub:"انقر — كن الأول!",
+    lbTaps: n => n.toLocaleString() + " نقرة",
+    lbNewNamePlaceholder:"اسم جديد...",
     earnItems:[
       { title:"انقر العملة",    desc:`كل نقرة تمنحك +${PER_TAP} FAHHHH.` },
       { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تُستعاد من الصفر في 30 دقيقة." },
@@ -265,6 +301,15 @@ const T = {
     withdrawSent:"अनुरोध भेजा गया!", withdrawNote:"24 घंटे के भीतर मैन्युअल प्रोसेसिंग।",
     wdHistoryTitle:"अनुरोध इतिहास", wdHistoryEmpty:"अभी कोई अनुरोध नहीं", wdNewRequest:"नया अनुरोध",
     wdAvailable:"उपलब्ध", wdPending:"प्रक्रियाधीन",
+    minShort:"मि", walletHint:"TON वॉलेट पता दर्ज करें",
+    holderBalanceTpl: n => `बैलेंस: ${n} FAHHHH`,
+    refCodeLabel:"आपका रेफ कोड",
+    lbTitle:"लीडरबोर्ड", lbEnterName:"अपना नाम दर्ज करें",
+    lbEnterNameSub:"यह लीडरबोर्ड पर दिखेगा", lbJoinBtn:"टॉप में शामिल हों",
+    lbYouLabel:"आप", lbYou:"(आप)", lbLoading:"लोड हो रहा है...",
+    lbEmpty:"अभी खाली", lbEmptySub:"टैप करें — पहले बनें!",
+    lbTaps: n => n.toLocaleString() + " टैप",
+    lbNewNamePlaceholder:"नया नाम...",
     earnItems:[
       { title:"सिक्के पर टैप",   desc:`हर टैप से +${PER_TAP} FAHHHH मिलते हैं।` },
       { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। मैक्स 1000। शून्य से 30 मिनट में भरती है।" },
@@ -396,7 +441,7 @@ function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUnt
         <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
           borderRadius:16, padding:"14px 16px", marginBottom: result ? 10 : 0 }}>
           <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:8 }}>
-            Введи адрес TON-кошелька
+            {t.walletHint}
           </div>
           <div style={{ display:"flex", gap:8 }}>
             <input value={wallet} onChange={e => { setWallet(e.target.value); setResult(null); }}
@@ -433,7 +478,7 @@ function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUnt
                 </div>
                 <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:3 }}>
                   {result.isHolder
-                    ? `Баланс: ${result.amount.toLocaleString("en-US",{maximumFractionDigits:4})} FAHHHH`
+                    ? t.holderBalanceTpl(result.amount.toLocaleString("en-US",{maximumFractionDigits:4}))
                     : t.noToken}
                 </div>
               </div>
@@ -447,7 +492,7 @@ function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUnt
                   fontWeight:800, fontSize:13, cursor: (boostUsed || boostActive) ? "default" : "pointer",
                   fontFamily:"inherit" }}>
                 {(boostUsed || boostActive)
-                  ? (boostActive ? `${t.holderBoostDone} (${boostMinsLeft} мин)` : t.holderBoostDone)
+                  ? (boostActive ? `${t.holderBoostDone} (${boostMinsLeft} ${t.minShort})` : t.holderBoostDone)
                   : t.holderBoostBtn}
               </button>
             )}
@@ -500,7 +545,7 @@ function EarnTab({ t }) {
 /* ── Leaderboard Tab ───────────────────────────────────── */
 const MEDAL_COLORS = ["#FFD700","#C0C0C0","#CD7F32"];
 
-function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
+function LeaderboardTab({ userId, userName, onSetName, currentBalance, t }) {
   const [entries,     setEntries]     = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [nameInput,   setNameInput]   = useState("");
@@ -533,13 +578,13 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
         <div style={{ marginBottom:16 }}>
           <Trophy size={56} color="#FFD600" strokeWidth={1.5}/>
         </div>
-        <div style={{ fontSize:20, fontWeight:900, marginBottom:8, textAlign:"center" }}>Введи своё имя</div>
+        <div style={{ fontSize:20, fontWeight:900, marginBottom:8, textAlign:"center" }}>{t.lbEnterName}</div>
         <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:24, textAlign:"center" }}>
-          Оно будет в таблице лидеров
+          {t.lbEnterNameSub}
         </div>
         <input value={nameInput} onChange={e => setNameInput(e.target.value)}
           onKeyDown={e => e.key==="Enter" && saveNameAndSubmit()}
-          placeholder="Твоё имя..." maxLength={24} autoFocus
+          placeholder={t.lbEnterName + "..."} maxLength={24} autoFocus
           style={{ width:"100%", background:"rgba(255,255,255,0.07)",
             border:"1px solid rgba(255,255,255,0.15)", borderRadius:14,
             padding:"14px 16px", color:"#fff", fontSize:16,
@@ -550,7 +595,7 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
           color: nameInput.trim() ? "#5C3A06" : "rgba(255,255,255,0.3)",
           fontWeight:900, fontSize:16, cursor: nameInput.trim() ? "pointer" : "default",
           fontFamily:"inherit", transition:"all .2s" }}>
-          Войти в топ
+          {t.lbJoinBtn}
         </button>
       </div>
     );
@@ -561,7 +606,7 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"14px 20px 10px", flexShrink:0 }}>
         <div>
-          <div style={{ fontSize:20, fontWeight:900 }}>Таблица лидеров</div>
+          <div style={{ fontSize:20, fontWeight:900 }}>{t.lbTitle}</div>
           {lastRefresh && <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:2 }}>
             {lastRefresh.toLocaleTimeString()}
           </div>}
@@ -585,7 +630,7 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
         <div style={{ margin:"0 16px 10px", background:"rgba(255,214,0,0.08)",
           border:"1px solid rgba(255,214,0,0.25)", borderRadius:14, padding:"10px 14px",
           display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
-          <span style={{ fontSize:13, color:"rgba(255,214,0,0.7)", fontWeight:700 }}>Ты:</span>
+          <span style={{ fontSize:13, color:"rgba(255,214,0,0.7)", fontWeight:700 }}>{t.lbYouLabel}:</span>
           <span style={{ fontWeight:900, color:"#FFD600" }}>#{myRank}</span>
           <span style={{ flex:1, fontWeight:700, fontSize:14 }}>{userName}</span>
           <span style={{ fontWeight:800, color:"#FFD600" }}>
@@ -600,7 +645,7 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
           <div style={{ display:"flex", gap:8 }}>
             <input value={nameInput} onChange={e => setNameInput(e.target.value)}
               onKeyDown={e => e.key==="Enter" && saveNameAndSubmit()}
-              placeholder="Новое имя..." maxLength={24}
+              placeholder={t.lbNewNamePlaceholder} maxLength={24}
               style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
                 borderRadius:10, padding:"9px 12px", color:"#fff", fontSize:13, fontFamily:"inherit", outline:"none" }}/>
             <button onClick={saveNameAndSubmit} style={{ background:"linear-gradient(180deg,#FFE838,#FFA000)",
@@ -615,14 +660,14 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
 
       <div style={{ flex:1, overflowY:"auto", padding:"0 16px 12px" }}>
         {loading && entries.length === 0 ? (
-          <div style={{ textAlign:"center", padding:"40px 0", color:"rgba(255,255,255,0.3)" }}>Загрузка...</div>
+          <div style={{ textAlign:"center", padding:"40px 0", color:"rgba(255,255,255,0.3)" }}>{t.lbLoading}</div>
         ) : entries.length === 0 ? (
           <div style={{ textAlign:"center", padding:"40px 0" }}>
             <div style={{ marginBottom:12 }}>
               <Medal size={44} color="rgba(255,255,255,0.15)" strokeWidth={1.5}/>
             </div>
-            <div style={{ fontSize:15, fontWeight:700, marginBottom:6 }}>Пока пусто</div>
-            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)" }}>Тапай — ты будешь первым!</div>
+            <div style={{ fontSize:15, fontWeight:700, marginBottom:6 }}>{t.lbEmpty}</div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)" }}>{t.lbEmptySub}</div>
           </div>
         ) : entries.map((entry, i) => {
           const rank = i + 1;
@@ -648,10 +693,10 @@ function LeaderboardTab({ userId, userName, onSetName, currentBalance }) {
                 <div style={{ fontWeight: isMe ? 800 : 700, fontSize:14,
                   color: isMe ? "#FFD600" : "#fff",
                   whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                  {entry.name || "Anonymous"}{isMe ? " (ты)" : ""}
+                  {entry.name || "Anonymous"}{isMe ? ` ${t.lbYou}` : ""}
                 </div>
                 <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:2 }}>
-                  {(entry.taps||0).toLocaleString()} тапов
+                  {t.lbTaps(entry.taps||0)}
                 </div>
               </div>
               <div style={{ fontWeight:900, fontSize:15, flexShrink:0,
@@ -737,8 +782,7 @@ function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
           display:"flex", alignItems:"center", gap:10 }}>
           <span style={{ fontSize:22 }}>⚡</span>
           <div>
-            <div style={{ fontWeight:900, fontSize:15, color:"#FFD600" }}>x2 бонус активен</div>
-            <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", marginTop:2 }}>
+            <div style={{ fontWeight:900, fontSize:15, color:"#FFD600" }}>
               {t.refBoostActive(boostMinsLeft)}
             </div>
           </div>
@@ -785,7 +829,7 @@ function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
         <div style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)",
           borderRadius:12, padding:"12px 14px", marginBottom:14,
           fontSize:12, color:"rgba(255,255,255,0.4)" }}>
-          Твой реф-код: <code style={{ fontFamily:"monospace", color:"#FFD600" }}>ref_{userId}</code>
+          {t.refCodeLabel}: <code style={{ fontFamily:"monospace", color:"#FFD600" }}>ref_{userId}</code>
         </div>
       )}
 
@@ -837,7 +881,7 @@ function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
               {r.name || "Anonymous"}
             </div>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:2 }}>
-              {(r.taps||0).toLocaleString()} тапов
+              {t.lbTaps(r.taps||0)}
             </div>
           </div>
           <div style={{ fontWeight:800, fontSize:14, flexShrink:0, color:"#FFD600" }}>
@@ -1365,7 +1409,7 @@ export default function App() {
               <div style={{ display:"inline-flex",alignItems:"center",gap:5,marginTop:6,
                 background:"rgba(255,214,0,0.12)",border:"1px solid rgba(255,214,0,0.3)",
                 borderRadius:99,padding:"4px 12px",fontSize:13,fontWeight:900,color:"#FFD600" }}>
-                ⚡ x2 · {Math.ceil((refBoostUntil - Date.now()) / 60000)} мин
+                {t.refBoostActive(Math.ceil((refBoostUntil - Date.now()) / 60000))}
               </div>
             )}
           </div>
@@ -1384,7 +1428,7 @@ export default function App() {
       {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}
         onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
-      {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance}/>}
+      {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance} t={t}/>}
       {tab === "friends"     && <FriendsTab userId={userId} refBoostUntil={refBoostUntil} t={t}
         onRefBoostUpdate={handleRefBoostUpdate}/>}
       {tab === "withdraw"    && <WithdrawTab balance={balance} t={t} userId={userId} userName={userName}
