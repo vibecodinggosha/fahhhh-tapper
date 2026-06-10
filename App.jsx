@@ -7,7 +7,7 @@ import {
 import { FAAAH_SRC } from "./audio.js";
 
 const CONTRACT          = "EQASZR1GwEl7QMbQHKUdJ956HAwDw3OMq_7QPjpjcg6U18rp";
-const PER_TAP           = 0.03;
+const PER_TAP           = 0.05;
 const MAX_ENERGY        = 1000;
 const HOLDER_MAX_ENERGY = 2000;
 const HOLDER_BOOST_MS   = 30 * 60 * 1000;
