@@ -7,10 +7,20 @@ const PORT    = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// In-memory store — persists while the process runs
+// In-memory store
 const players = {};
 
-// GET /leaderboard — топ-100
+const REF_BOOST_MS = 30 * 60 * 1000;
+
+const REFERRAL_MSG = {
+  ru: (name, until) => `🎉 Новый реферал!\n${name} зашёл по твоей ссылке.\n⚡ x2 бонус активен до ${until}`,
+  en: (name, until) => `🎉 New referral!\n${name} joined via your link.\n⚡ x2 bonus active until ${until}`,
+  zh: (name, until) => `🎉 新推荐！\n${name} 通过你的链接加入。\n⚡ x2奖励激活至 ${until}`,
+  ar: (name, until) => `🎉 إحالة جديدة!\n${name} انضم عبر رابطك.\n⚡ مكافأة x2 نشطة حتى ${until}`,
+  hi: (name, until) => `🎉 नया रेफरल!\n${name} आपके लिंक से जुड़ा।\n⚡ x2 बोनस ${until} तक सक्रिय`,
+};
+
+// GET /leaderboard
 app.get("/leaderboard", (req, res) => {
   const list = Object.values(players)
     .sort((a, b) => b.balance - a.balance)
@@ -18,25 +28,73 @@ app.get("/leaderboard", (req, res) => {
   res.json({ players: list });
 });
 
-// POST /score — сохранить счёт
+// POST /score
 app.post("/score", (req, res) => {
-  const { userId, name, balance, taps } = req.body;
+  const { userId, name, balance, taps, lang } = req.body;
   if (!userId) return res.status(400).json({ error: "no userId" });
   const existing = players[userId];
   if (existing && existing.balance > parseFloat(balance)) {
+    // Update lang even if balance not higher
+    if (lang) existing.lang = lang;
     return res.json({ ok: true, note: "existing score higher" });
   }
   players[userId] = {
+    ...(players[userId] || {}),
     userId,
     name:    (name || "Anonymous").slice(0, 32),
     balance: parseFloat(balance) || 0,
     taps:    parseInt(taps)      || 0,
+    lang:    lang || players[userId]?.lang || "ru",
     ts:      Date.now(),
   };
   res.json({ ok: true });
 });
 
-// POST /withdraw — forward withdrawal request to owner via Telegram
+// POST /referral
+app.post("/referral", async (req, res) => {
+  const { referrerId, newUserId, newUserName } = req.body;
+  if (!referrerId || !newUserId || referrerId === newUserId)
+    return res.status(400).json({ error: "invalid" });
+
+  if (!players[referrerId]) {
+    players[referrerId] = { userId: referrerId, name: "Unknown", balance: 0, taps: 0, ts: Date.now() };
+  }
+  const p = players[referrerId];
+  const base = Math.max(p.refBoostUntil || 0, Date.now());
+  p.refBoostUntil = base + REF_BOOST_MS;
+  p.referrals = (p.referrals || 0) + 1;
+  p.referralIds = p.referralIds || [];
+  if (!p.referralIds.includes(newUserId)) p.referralIds.push(newUserId);
+
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (token) {
+    const lang   = p.lang || "ru";
+    const msgFn  = REFERRAL_MSG[lang] || REFERRAL_MSG.ru;
+    const until  = new Date(p.refBoostUntil).toLocaleTimeString("ru-RU", { hour:"2-digit", minute:"2-digit" });
+    const text   = msgFn(newUserName || "Кто-то", until);
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: referrerId, text }),
+      });
+    } catch {}
+  }
+  res.json({ ok: true, refBoostUntil: p.refBoostUntil });
+});
+
+// GET /check-ref/:userId — boost status + referral list
+app.get("/check-ref/:userId", (req, res) => {
+  const p = players[req.params.userId];
+  const referralIds = p?.referralIds || [];
+  const referralList = referralIds.map(uid => {
+    const r = players[uid];
+    return { userId: uid, name: r?.name || "Unknown", balance: r?.balance || 0, taps: r?.taps || 0 };
+  }).sort((a, b) => b.balance - a.balance);
+  res.json({ refBoostUntil: p?.refBoostUntil || 0, referrals: p?.referrals || 0, referralList });
+});
+
+// POST /withdraw
 app.post("/withdraw", async (req, res) => {
   const { wallet, amount, userId, name, balance } = req.body;
   if (!wallet || !amount) return res.status(400).json({ error: "missing fields" });
@@ -56,43 +114,6 @@ app.post("/withdraw", async (req, res) => {
     }
   }
   res.json({ ok: true });
-});
-
-const REF_BOOST_MS = 30 * 60 * 1000;
-
-// POST /referral — реферал пришёл, даём буст рефереру
-app.post("/referral", async (req, res) => {
-  const { referrerId, newUserId, newUserName } = req.body;
-  if (!referrerId || !newUserId || referrerId === newUserId)
-    return res.status(400).json({ error: "invalid" });
-
-  if (!players[referrerId]) {
-    players[referrerId] = { userId: referrerId, name: "Unknown", balance: 0, taps: 0, ts: Date.now() };
-  }
-  const p = players[referrerId];
-  const base = Math.max(p.refBoostUntil || 0, Date.now());
-  p.refBoostUntil = base + REF_BOOST_MS;
-  p.referrals = (p.referrals || 0) + 1;
-
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (token) {
-    const until = new Date(p.refBoostUntil).toLocaleTimeString("ru-RU", { hour:"2-digit", minute:"2-digit" });
-    const text = `🎉 Новый реферал!\n${newUserName || "Кто-то"} зашёл по твоей ссылке.\n⚡ x2 бонус активен до ${until}`;
-    try {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: referrerId, text }),
-      });
-    } catch {}
-  }
-  res.json({ ok: true, refBoostUntil: p.refBoostUntil });
-});
-
-// GET /check-ref/:userId — получить текущий буст реферала
-app.get("/check-ref/:userId", (req, res) => {
-  const p = players[req.params.userId];
-  res.json({ refBoostUntil: p?.refBoostUntil || 0, referrals: p?.referrals || 0 });
 });
 
 app.get("/health", (_, res) => res.json({ ok: true }));
