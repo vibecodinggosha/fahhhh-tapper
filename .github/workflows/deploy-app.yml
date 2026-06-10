@@ -32,7 +32,7 @@ jobs:
           npm install
           npm run build
         env:
-          VITE_FIREBASE_URL: ${{ secrets.VITE_FIREBASE_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

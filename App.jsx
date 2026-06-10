@@ -11,28 +11,25 @@ const PER_TAP    = 0.05;
 const MAX_ENERGY = 1000;
 const SCREAM_MS  = 1900;
 
-// Firebase Realtime Database — задаётся через VITE_FIREBASE_URL
-const FIREBASE_URL = import.meta.env.VITE_FIREBASE_URL || "";
+// URL бэкенда — задаётся через секрет VITE_API_URL в GitHub Actions
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 async function dbGetLeaderboard() {
-  if (!FIREBASE_URL) return [];
+  if (!API_URL) return [];
   try {
-    const res = await fetch(`${FIREBASE_URL}/players.json`);
-    const data = await res.json();
-    if (!data) return [];
-    return Object.values(data)
-      .sort((a, b) => b.balance - a.balance)
-      .slice(0, 100);
+    const res = await fetch(`${API_URL}/leaderboard`);
+    const { players } = await res.json();
+    return players || [];
   } catch { return []; }
 }
 
 async function dbSetScore({ userId, name, balance, taps }) {
-  if (!FIREBASE_URL || !userId) return;
+  if (!API_URL || !userId) return;
   try {
-    await fetch(`${FIREBASE_URL}/players/${encodeURIComponent(userId)}.json`, {
-      method: "PUT",
+    await fetch(`${API_URL}/score`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, name: (name || "Anonymous").slice(0, 32), balance, taps, ts: Date.now() }),
+      body: JSON.stringify({ userId, name, balance, taps }),
     });
   } catch {}
 }
