@@ -736,6 +736,13 @@ export default function App() {
   const balanceRef       = useRef(0);
   const tapsRef          = useRef(0);
   const pendingSyncRef   = useRef(false);
+  const balanceTextRef   = useRef(null);
+  const tapsTextRef      = useRef(null);
+  const energyTextRef    = useRef(null);
+  const energyBarRef     = useRef(null);
+  const tRef             = useRef(null);
+  const audioCtxRef      = useRef(null);
+  const audioBufRef      = useRef(null);
 
   const maxEnergy = MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
@@ -743,6 +750,7 @@ export default function App() {
   tapValueRef.current = tapValue;
 
   const t = T[lang] || T.ru;
+  tRef.current = t;
 
   /* ── загрузка из localStorage ── */
   useEffect(() => {
@@ -752,15 +760,30 @@ export default function App() {
     if (data.lang)    setLang(data.lang);
   }, []);
 
-  /* ── RAF-синхронизация refs → state (60fps, без блокировки) ── */
+  /* ── RAF: цифры обновляются напрямую в DOM каждый кадр (дёшево),
+        React-state синхронизируется максимум 4 раза/сек, чтобы не
+        перерендеривать всё приложение на каждый тап ── */
   useEffect(() => {
     let rafId;
-    const loop = () => {
+    let lastStateSync = 0;
+    const loop = (now) => {
       if (pendingSyncRef.current) {
-        pendingSyncRef.current = false;
-        setBalance(balanceRef.current);
-        setTaps(tapsRef.current);
-        setEnergy(energyRef.current);
+        const tt = tRef.current;
+        if (balanceTextRef.current)
+          balanceTextRef.current.textContent = balanceRef.current.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+        if (tapsTextRef.current && tt)
+          tapsTextRef.current.textContent = tt.taps(tapsRef.current);
+        if (energyTextRef.current)
+          energyTextRef.current.textContent = String(Math.floor(energyRef.current));
+        if (energyBarRef.current)
+          energyBarRef.current.style.width = (energyRef.current / maxEnergyRef.current * 100) + "%";
+        if (now - lastStateSync > 250) {
+          lastStateSync = now;
+          pendingSyncRef.current = false;
+          setBalance(balanceRef.current);
+          setTaps(tapsRef.current);
+          setEnergy(energyRef.current);
+        }
       }
       rafId = requestAnimationFrame(loop);
     };
@@ -786,9 +809,14 @@ export default function App() {
     setLeagueIdx(idx);
   }, [balance]);
 
-  /* ── энергия ── */
+  /* ── энергия: регенерация пишет в ref (источник истины для тапов),
+        иначе тап перезаписывал бы восстановленное значение старым ── */
   useEffect(() => {
-    const t = setInterval(() => setEnergy(e => Math.min(maxEnergyRef.current, e + maxEnergyRef.current / 1800)), 1000);
+    const t = setInterval(() => {
+      if (energyRef.current >= maxEnergyRef.current) return;
+      energyRef.current = Math.min(maxEnergyRef.current, energyRef.current + maxEnergyRef.current / 1800);
+      pendingSyncRef.current = true;
+    }, 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -826,6 +854,35 @@ export default function App() {
   }, []);
 
   const playSound = useCallback(() => {
+    // WebAudio: AudioContext создаётся при первом тапе (требование iOS),
+    // буфер декодируется один раз — дальше каждый play почти бесплатен
+    try {
+      let ctx = audioCtxRef.current;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          ctx = new AC();
+          audioCtxRef.current = ctx;
+          fetch(FAAAH_SRC)
+            .then(r => r.arrayBuffer())
+            .then(b => ctx.decodeAudioData(b))
+            .then(buf => { audioBufRef.current = buf; })
+            .catch(() => {});
+        }
+      }
+      if (ctx) {
+        if (ctx.state === "suspended") ctx.resume();
+        const buf = audioBufRef.current;
+        if (buf) {
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          src.start();
+          return;
+        }
+      }
+    } catch {}
+    // фолбэк: пул <audio>, пока WebAudio-буфер не декодирован
     const pool = audioPool.current;
     if (!pool.length) return;
     const a = pool[poolIdx.current++ % pool.length];
@@ -1058,11 +1115,11 @@ export default function App() {
                 <circle cx="13" cy="17" r="2.5" fill="#5D3A00"/><circle cx="25" cy="17" r="2.5" fill="#5D3A00"/>
                 <line x1="13" y1="24" x2="25" y2="24" stroke="#5D3A00" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              <span style={{ fontSize:46,fontWeight:900,letterSpacing:"-0.03em",fontVariantNumeric:"tabular-nums",lineHeight:1 }}>
+              <span ref={balanceTextRef} style={{ fontSize:46,fontWeight:900,letterSpacing:"-0.03em",fontVariantNumeric:"tabular-nums",lineHeight:1 }}>
                 {balance.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
               </span>
             </div>
-            <div style={{ fontSize:12,color:"rgba(255,255,255,0.35)",marginTop:4 }}>{t.taps(taps)}</div>
+            <div ref={tapsTextRef} style={{ fontSize:12,color:"rgba(255,255,255,0.35)",marginTop:4 }}>{t.taps(taps)}</div>
             {refBoostUntil > Date.now() && (
               <div style={{ display:"inline-flex",alignItems:"center",gap:5,marginTop:6,
                 background:"rgba(255,214,0,0.12)",border:"1px solid rgba(255,214,0,0.3)",
@@ -1152,7 +1209,7 @@ export default function App() {
               <div style={{ display:"flex",alignItems:"center",gap:7 }}>
                 <Zap size={22} color="#FFD600" fill="#FFD600"/>
                 <span style={{ fontSize:18,fontWeight:800,fontVariantNumeric:"tabular-nums" }}>
-                  {Math.floor(energy)}<span style={{ color:"rgba(255,255,255,0.38)",fontWeight:600 }}>/{maxEnergy}</span>
+                  <span ref={energyTextRef}>{Math.floor(energy)}</span><span style={{ color:"rgba(255,255,255,0.38)",fontWeight:600 }}>/{maxEnergy}</span>
                 </span>
               </div>
               <button onClick={handleBoost} disabled={boostsLeft === 0} style={{
@@ -1168,7 +1225,7 @@ export default function App() {
               </button>
             </div>
             <div style={{ height:7,borderRadius:99,background:"rgba(255,255,255,0.1)",overflow:"hidden" }}>
-              <div style={{ height:"100%",width:`${energyPct}%`,background:"linear-gradient(90deg,#FFA000,#FFD600)",borderRadius:99,transition:"width .4s ease" }}/>
+              <div ref={energyBarRef} style={{ height:"100%",width:`${energyPct}%`,background:"linear-gradient(90deg,#FFA000,#FFD600)",borderRadius:99,transition:"width .4s ease" }}/>
             </div>
           </div>
         </>
@@ -1179,8 +1236,8 @@ export default function App() {
         borderTop:"1px solid rgba(255,255,255,0.08)", flexShrink:0,
         position:"relative", overflow:"visible", zIndex:10, minHeight:62 }}>
         {[
-          { id:"exchange",    Icon:ArrowLeftRight, fl:"1.5" },
-          { id:"earn",        Icon:BookOpen,       fl:"1.5" },
+          { id:"exchange",    Icon:ArrowLeftRight, fl:"1" },
+          { id:"earn",        Icon:BookOpen,       fl:"1" },
           { id:"mine",        Icon:Pickaxe,        fl:"0 0 72px", fab:true },
           { id:"friends",     Icon:Users,          fl:"1"   },
           { id:"withdraw",    Icon:Wallet,         fl:"1"   },
