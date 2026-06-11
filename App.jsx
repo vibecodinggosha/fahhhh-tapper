@@ -734,10 +734,13 @@ export default function App() {
   const saveTimer        = useRef(null);
   const screamTimer      = useRef(null);
   const coinRef          = useRef(null);
+  const coinRectRef      = useRef(null);
+  const lastSoundRef     = useRef(0);
   const tiltTimer        = useRef(null);
   const floatContainerRef = useRef(null);
   const floatIdxRef      = useRef(0);
   const floatPoolRef     = useRef([]);
+  const floatAnimsRef    = useRef([]);
   const screamingRef     = useRef(false);
   const maxEnergyRef     = useRef(MAX_ENERGY);
   const energyRef        = useRef(energy);
@@ -789,7 +792,7 @@ export default function App() {
           energyTextRef.current.textContent = String(Math.floor(energyRef.current));
         if (energyBarRef.current)
           energyBarRef.current.style.width = (energyRef.current / maxEnergyRef.current * 100) + "%";
-        if (now - lastStateSync > 250) {
+        if (now - lastStateSync > 500) {
           lastStateSync = now;
           pendingSyncRef.current = false;
           setBalance(balanceRef.current);
@@ -825,7 +828,10 @@ export default function App() {
     } catch {}
   }, []);
 
-  const playSound = useCallback(() => {
+  const playSound = useCallback((force = false) => {
+    const now = performance.now();
+    if (!force && now - lastSoundRef.current < 100) return;
+    lastSoundRef.current = now;
     const pool = audioPool.current;
     if (!pool.length) return;
     const a = pool[poolIdx.current++ % pool.length];
@@ -889,9 +895,9 @@ export default function App() {
     for (let i = 0; i < LEAGUES.length; i++) if (balance >= LEAGUES[i].min) idx = i;
     if (leagueReadyRef.current && prevLeagueIdxRef.current !== null && idx > prevLeagueIdxRef.current) {
       const league = LEAGUES[idx];
-      playSound();
-      setTimeout(playSound, 220);
-      setTimeout(playSound, 440);
+      playSound(true);
+      setTimeout(() => playSound(true), 220);
+      setTimeout(() => playSound(true), 440);
       startConfetti(league.color);
       setLeagueCelebration(league);
       setTimeout(() => setLeagueCelebration(null), 3200);
@@ -910,6 +916,15 @@ export default function App() {
     }, 1000);
     return () => clearInterval(t);
   }, []);
+
+  /* ── кэш rect монеты: читаем один раз при открытии Mine-вкладки, не на каждый тап ── */
+  useEffect(() => {
+    if (tab !== "mine") { coinRectRef.current = null; return; }
+    const update = () => { coinRectRef.current = coinRef.current?.getBoundingClientRect() ?? null; };
+    const id = requestAnimationFrame(update);
+    window.addEventListener("resize", update, { passive: true });
+    return () => { cancelAnimationFrame(id); window.removeEventListener("resize", update); };
+  }, [tab]);
 
   /* ── истечение реф-буста ── */
   useEffect(() => {
@@ -999,7 +1014,6 @@ export default function App() {
     const c = floatContainerRef.current;
     if (!c) return;
 
-    // Пересоздаём пул если контейнер сменился (переключение вкладок)
     if (!floatPoolRef.current.length || floatPoolRef.current[0].parentNode !== c) {
       floatPoolRef.current = Array.from({ length: 8 }, () => {
         const el = document.createElement("span");
@@ -1009,21 +1023,21 @@ export default function App() {
         c.appendChild(el);
         return el;
       });
+      floatAnimsRef.current = new Array(8).fill(null);
     }
 
-    const pool = floatPoolRef.current;
-    const idx  = floatIdxRef.current++ % pool.length;
+    const pool  = floatPoolRef.current;
+    const idx   = floatIdxRef.current++ % pool.length;
     const angle = (idx / pool.length) * Math.PI * 2 - Math.PI / 2;
-    const ox = Math.cos(angle) * 55;
-    const oy = Math.sin(angle) * 35;
 
     const el = pool[idx];
     el.textContent = "+" + val;
-    el.style.left = (x + ox) + "px";
-    el.style.top  = (y + oy) + "px";
+    el.style.left = (x + Math.cos(angle) * 55) + "px";
+    el.style.top  = (y + Math.sin(angle) * 35) + "px";
 
-    el.getAnimations().forEach(a => a.cancel());
-    el.animate([
+    // Отменяем по прямой ссылке — дешевле чем el.getAnimations()
+    floatAnimsRef.current[idx]?.cancel();
+    floatAnimsRef.current[idx] = el.animate([
       { opacity: 1, transform: "translate(-50%,-50%) scale(1.1)" },
       { opacity: 0, transform: "translate(-50%,-210px) scale(1)" },
     ], { duration: 900, easing: "ease-out", fill: "forwards" });
@@ -1039,9 +1053,11 @@ export default function App() {
     energyRef.current = Math.max(0, energyRef.current - 1);
     pendingSyncRef.current = true;
 
-    const rect = coinRef.current?.getBoundingClientRect();
-    const cx = e.touches?.[0]?.clientX ?? e.clientX;
-    const cy = e.touches?.[0]?.clientY ?? e.clientY;
+    // Используем кэшированный rect — getBoundingClientRect() вызывает
+    // принудительный синхронный layout и на каждом тапе очень дорог
+    const rect = coinRectRef.current;
+    const cx = e.clientX;
+    const cy = e.clientY;
     const x  = rect ? cx - rect.left  : 145;
     const y  = rect ? cy - rect.top   : 145;
     const dx = rect ? (x - rect.width/2)  / (rect.width/2)  : 0;
