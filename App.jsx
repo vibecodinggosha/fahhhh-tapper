@@ -1100,11 +1100,13 @@ export default function App() {
   const spawnFloat = useCallback((x, y, val) => {
     const c = floatContainerRef.current;
     if (!c) return;
-    if (c.children.length >= 6) c.removeChild(c.firstChild);
+    if (c.children.length >= 4) c.removeChild(c.firstChild);
     const el = document.createElement("span");
     el.textContent = "+" + val;
-    el.style.cssText = `position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);` +
-      `font-weight:900;font-size:28px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.75);` +
+    const ox = (Math.random() - 0.5) * 70;
+    const oy = (Math.random() - 0.5) * 30;
+    el.style.cssText = `position:absolute;left:${x + ox}px;top:${y + oy}px;transform:translate(-50%,-50%);` +
+      `font-weight:900;font-size:26px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.75);` +
       `animation:floatUp .9s ease-out forwards;pointer-events:none;white-space:nowrap;font-family:inherit;`;
     c.appendChild(el);
     setTimeout(() => { try { c.removeChild(el); } catch {} }, 950);
