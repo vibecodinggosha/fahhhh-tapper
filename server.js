@@ -19,22 +19,47 @@ app.use(express.json());
 
 // ── Persistence ────────────────────────────────────────────
 let players = {};
+// Tracks whether we have a trustworthy picture of on-disk data. If startup
+// load fails (corrupted/partial file), this stays false and we refuse to
+// overwrite the existing files — otherwise the 5s autosave would wipe a good
+// leaderboard with an empty {} after a single bad read. This was the bug that
+// kept resetting the board.
+let loadedOk = false;
 
 console.log(`Data file: ${DATA_FILE}`);
 for (const f of [DATA_FILE, DATA_FILE + ".bak"]) {
   try {
     if (fs.existsSync(f)) {
       const parsed = JSON.parse(fs.readFileSync(f, "utf8"));
-      players = parsed;
-      console.log(`Loaded ${Object.keys(players).length} players from ${f}`);
-      break;
+      if (parsed && typeof parsed === "object") {
+        players = parsed;
+        loadedOk = true;
+        console.log(`Loaded ${Object.keys(players).length} players from ${f}`);
+        break;
+      }
     }
   } catch (e) {
     console.error(`Failed to load ${f}:`, e.message);
   }
 }
+// Genuinely fresh server (no files at all) — saving is safe from the start.
+if (!loadedOk && !fs.existsSync(DATA_FILE) && !fs.existsSync(DATA_FILE + ".bak")) {
+  loadedOk = true;
+  console.log("No existing data files — starting fresh.");
+}
 
 function savePlayers() {
+  const count = Object.keys(players).length;
+  // Never clobber existing data with an empty set. Covers two cases:
+  //  1. Startup load failed → players is {} but real files still on disk.
+  //  2. loadedOk is false → we don't trust our in-memory state yet.
+  if (count === 0 && (fs.existsSync(DATA_FILE) || fs.existsSync(DATA_FILE + ".bak"))) {
+    console.error("Skipping save: refusing to overwrite existing data with empty set");
+    return;
+  }
+  if (!loadedOk && count === 0) {
+    return;
+  }
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     const tmp = DATA_FILE + ".tmp";
@@ -42,6 +67,7 @@ function savePlayers() {
     fs.writeFileSync(tmp, data, "utf8");
     fs.renameSync(tmp, DATA_FILE);
     fs.writeFileSync(DATA_FILE + ".bak", data, "utf8");
+    loadedOk = true; // we now have a confirmed-good on-disk snapshot
   } catch (e) {
     console.error("Failed to save players.json:", e.message);
   }
