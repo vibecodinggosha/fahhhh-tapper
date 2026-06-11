@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Pickaxe, ArrowLeftRight, BookOpen, Copy, Check,
   Zap, Trophy, Rocket, ExternalLink, Globe, ChevronDown,
-  Medal, RefreshCw, User, Users, Wallet, ClipboardList,
+  RefreshCw, Users, Wallet, ClipboardList,
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
@@ -16,33 +16,6 @@ const SCREAM_MS         = 1900;
 // URL бэкенда — задаётся через секрет VITE_API_URL в GitHub Actions
 const API_URL = import.meta.env.VITE_API_URL || "";
 const BUY_URL = "https://t.me/gasPump_bot/app?startapp=eyJyZWZfdXNlcl9pZCI6NTI0Mzg0NzUwLCJ0b2tlbl9hZGRyZXNzIjoiRVFBU1pSMUd3RWw3UU1iUUhLVWRKOTU2SEF3RHczT01xXzdRUGpwamNnNlUxOHJwIn0";
-
-async function dbGetLeaderboard() {
-  if (!API_URL) return [];
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 5000);
-  try {
-    const res = await fetch(`${API_URL}/leaderboard`, { signal: ctrl.signal });
-    const { players } = await res.json();
-    return players || [];
-  } catch { return []; }
-  finally { clearTimeout(tid); }
-}
-
-async function dbSetScore({ userId, name, balance, taps, lang }) {
-  if (!API_URL || !userId) return;
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 5000);
-  try {
-    await fetch(`${API_URL}/score`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, name, balance, taps, lang }),
-      signal: ctrl.signal,
-    });
-  } catch {}
-  finally { clearTimeout(tid); }
-}
 
 async function fetchRefData(userId) {
   if (!API_URL || !userId) return { refBoostUntil: 0, referralList: [] };
@@ -85,7 +58,6 @@ const TABS_LABELS = {
   exchange:    { ru:"Обмен",      en:"Exchange", zh:"交易",  ar:"تبادل", hi:"विनिमय" },
   mine:        { ru:"Тапать",     en:"Mine",     zh:"挖矿",  ar:"تعدين", hi:"माइन"   },
   earn:        { ru:"Как играть", en:"Earn",     zh:"赎回",  ar:"اكسب",  hi:"कमाएं"  },
-  leaderboard: { ru:"Топ",        en:"Top",      zh:"排行",  ar:"ترتيب", hi:"टॉप"    },
   friends:     { ru:"Друзья",     en:"Friends",  zh:"好友",  ar:"أصدقاء", hi:"दोस्त" },
   withdraw:    { ru:"Вывод",      en:"Withdraw", zh:"提现",  ar:"سحب",   hi:"निकालें" },
 };
@@ -123,12 +95,7 @@ const T = {
     wdAvailable:"Доступно", wdPending:"На рассмотрении",
     minShort:"мин",
     refCodeLabel:"Твой реф-код",
-    lbTitle:"Таблица лидеров", lbEnterName:"Введи своё имя",
-    lbEnterNameSub:"Оно будет в таблице лидеров", lbJoinBtn:"Войти в топ",
-    lbYouLabel:"Ты", lbYou:"(ты)", lbLoading:"Загрузка...",
-    lbEmpty:"Пока пусто", lbEmptySub:"Тапай — ты будешь первым!",
     lbTaps: n => n.toLocaleString("ru-RU") + " тапов",
-    lbNewNamePlaceholder:"Новое имя...",
     earnItems:[
       { title:"Тапай монету",          desc:`Нажимай на большую монету — каждый тап приносит +${PER_TAP} FAHHHH.` },
       { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Максимум 1000. С нуля восстанавливается за 30 минут." },
@@ -162,12 +129,7 @@ const T = {
     wdAvailable:"Available", wdPending:"Pending",
     minShort:"min",
     refCodeLabel:"Your ref code",
-    lbTitle:"Leaderboard", lbEnterName:"Enter your name",
-    lbEnterNameSub:"It will show on the leaderboard", lbJoinBtn:"Join the top",
-    lbYouLabel:"You", lbYou:"(you)", lbLoading:"Loading...",
-    lbEmpty:"Nothing yet", lbEmptySub:"Tap — be the first!",
     lbTaps: n => n.toLocaleString() + " taps",
-    lbNewNamePlaceholder:"New name...",
     earnItems:[
       { title:"Tap the coin",           desc:`Press the big coin — each tap gives +${PER_TAP} FAHHHH.` },
       { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills from zero in 30 minutes." },
@@ -201,12 +163,7 @@ const T = {
     wdAvailable:"可用", wdPending:"待处理",
     minShort:"分",
     refCodeLabel:"你的推荐码",
-    lbTitle:"排行榜", lbEnterName:"输入你的名字",
-    lbEnterNameSub:"将显示在排行榜上", lbJoinBtn:"加入榜单",
-    lbYouLabel:"我", lbYou:"(我)", lbLoading:"加载中...",
-    lbEmpty:"暂无数据", lbEmptySub:"点击成为第一！",
     lbTaps: n => n.toLocaleString() + " 次",
-    lbNewNamePlaceholder:"新名字...",
     earnItems:[
       { title:"点击金币",      desc:`每次点击获得 +${PER_TAP} FAHHHH。` },
       { title:"注意能量",      desc:"每次消耗1能量，上限1000，从零恢复需30分钟。" },
@@ -240,12 +197,7 @@ const T = {
     wdAvailable:"متاح", wdPending:"قيد المعالجة",
     minShort:"د",
     refCodeLabel:"رمز الإحالة",
-    lbTitle:"المتصدرون", lbEnterName:"أدخل اسمك",
-    lbEnterNameSub:"سيظهر في قائمة المتصدرين", lbJoinBtn:"انضم للقائمة",
-    lbYouLabel:"أنت", lbYou:"(أنت)", lbLoading:"جارٍ التحميل...",
-    lbEmpty:"فارغ", lbEmptySub:"انقر — كن الأول!",
     lbTaps: n => n.toLocaleString() + " نقرة",
-    lbNewNamePlaceholder:"اسم جديد...",
     earnItems:[
       { title:"انقر العملة",    desc:`كل نقرة تمنحك +${PER_TAP} FAHHHH.` },
       { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تُستعاد من الصفر في 30 دقيقة." },
@@ -279,12 +231,7 @@ const T = {
     wdAvailable:"उपलब्ध", wdPending:"प्रक्रियाधीन",
     minShort:"मि",
     refCodeLabel:"आपका रेफ कोड",
-    lbTitle:"लीडरबोर्ड", lbEnterName:"अपना नाम दर्ज करें",
-    lbEnterNameSub:"यह लीडरबोर्ड पर दिखेगा", lbJoinBtn:"टॉप में शामिल हों",
-    lbYouLabel:"आप", lbYou:"(आप)", lbLoading:"लोड हो रहा है...",
-    lbEmpty:"अभी खाली", lbEmptySub:"टैप करें — पहले बनें!",
     lbTaps: n => n.toLocaleString() + " टैप",
-    lbNewNamePlaceholder:"नया नाम...",
     earnItems:[
       { title:"सिक्के पर टैप",   desc:`हर टैप से +${PER_TAP} FAHHHH मिलते हैं।` },
       { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। मैक्स 1000। शून्य से 30 मिनट में भरती है।" },
@@ -410,174 +357,6 @@ function EarnTab({ t }) {
   );
 }
 
-/* ── Leaderboard Tab ───────────────────────────────────── */
-const MEDAL_COLORS = ["#FFD700","#C0C0C0","#CD7F32"];
-
-function LeaderboardTab({ userId, userName, onSetName, currentBalance, t }) {
-  const [entries,     setEntries]     = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [nameInput,   setNameInput]   = useState("");
-  const [settingName, setSettingName] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const players = await dbGetLeaderboard();
-    setEntries(players);
-    setLastRefresh(new Date());
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const saveNameAndSubmit = async () => {
-    const n = nameInput.trim();
-    if (!n) return;
-    await onSetName(n);
-    setSettingName(false);
-  };
-
-  const myRank = entries.findIndex(e => e.userId === userId) + 1;
-
-  if (!userName) {
-    return (
-      <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center",
-        justifyContent:"center", padding:"0 32px" }}>
-        <div style={{ marginBottom:16 }}>
-          <Trophy size={56} color="#FFD600" strokeWidth={1.5}/>
-        </div>
-        <div style={{ fontSize:20, fontWeight:900, marginBottom:8, textAlign:"center" }}>{t.lbEnterName}</div>
-        <div style={{ fontSize:13, color:"rgba(255,255,255,0.45)", marginBottom:24, textAlign:"center" }}>
-          {t.lbEnterNameSub}
-        </div>
-        <input value={nameInput} onChange={e => setNameInput(e.target.value)}
-          onKeyDown={e => e.key==="Enter" && saveNameAndSubmit()}
-          placeholder={t.lbEnterName + "..."} maxLength={24} autoFocus
-          style={{ width:"100%", background:"rgba(255,255,255,0.07)",
-            border:"1px solid rgba(255,255,255,0.15)", borderRadius:14,
-            padding:"14px 16px", color:"#fff", fontSize:16,
-            fontFamily:"inherit", outline:"none", marginBottom:12, boxSizing:"border-box" }}/>
-        <button onClick={saveNameAndSubmit} disabled={!nameInput.trim()} style={{
-          width:"100%", background: nameInput.trim() ? "linear-gradient(180deg,#FFE838,#FFA000)" : "rgba(255,255,255,0.07)",
-          border:"none", borderRadius:14, padding:"14px",
-          color: nameInput.trim() ? "#5C3A06" : "rgba(255,255,255,0.3)",
-          fontWeight:900, fontSize:16, cursor: nameInput.trim() ? "pointer" : "default",
-          fontFamily:"inherit", transition:"all .2s" }}>
-          {t.lbJoinBtn}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"14px 20px 10px", flexShrink:0 }}>
-        <div>
-          <div style={{ fontSize:20, fontWeight:900 }}>{t.lbTitle}</div>
-          {lastRefresh && <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:2 }}>
-            {lastRefresh.toLocaleTimeString()}
-          </div>}
-        </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={() => { setNameInput(userName); setSettingName(true); }} style={{
-            background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.1)",
-            borderRadius:10, padding:"8px 10px", cursor:"pointer", color:"rgba(255,255,255,0.6)",
-            display:"flex", alignItems:"center", gap:5, fontFamily:"inherit", fontSize:12, fontWeight:700 }}>
-            <User size={13}/> {userName}
-          </button>
-          <button onClick={load} style={{ background:"rgba(255,255,255,0.07)",
-            border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"8px 10px",
-            cursor:"pointer", color:"rgba(255,255,255,0.6)", display:"flex", alignItems:"center" }}>
-            <RefreshCw size={14} style={{ animation: loading ? "spin 1s linear infinite" : "none" }}/>
-          </button>
-        </div>
-      </div>
-
-      {myRank > 0 && (
-        <div style={{ margin:"0 16px 10px", background:"rgba(255,214,0,0.08)",
-          border:"1px solid rgba(255,214,0,0.25)", borderRadius:14, padding:"10px 14px",
-          display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
-          <span style={{ fontSize:13, color:"rgba(255,214,0,0.7)", fontWeight:700 }}>{t.lbYouLabel}:</span>
-          <span style={{ fontWeight:900, color:"#FFD600" }}>#{myRank}</span>
-          <span style={{ flex:1, fontWeight:700, fontSize:14 }}>{userName}</span>
-          <span style={{ fontWeight:800, color:"#FFD600" }}>
-            {currentBalance.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
-          </span>
-        </div>
-      )}
-
-      {settingName && (
-        <div style={{ margin:"0 16px 10px", background:"rgba(255,255,255,0.05)",
-          border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, padding:"12px 14px", flexShrink:0 }}>
-          <div style={{ display:"flex", gap:8 }}>
-            <input value={nameInput} onChange={e => setNameInput(e.target.value)}
-              onKeyDown={e => e.key==="Enter" && saveNameAndSubmit()}
-              placeholder={t.lbNewNamePlaceholder} maxLength={24}
-              style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
-                borderRadius:10, padding:"9px 12px", color:"#fff", fontSize:13, fontFamily:"inherit", outline:"none" }}/>
-            <button onClick={saveNameAndSubmit} style={{ background:"linear-gradient(180deg,#FFE838,#FFA000)",
-              border:"none", borderRadius:10, padding:"9px 14px", fontWeight:800, fontSize:13,
-              color:"#5C3A06", cursor:"pointer", fontFamily:"inherit" }}>ОК</button>
-            <button onClick={() => setSettingName(false)} style={{ background:"rgba(255,255,255,0.07)",
-              border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, padding:"9px 12px",
-              color:"rgba(255,255,255,0.5)", cursor:"pointer", fontFamily:"inherit", fontSize:13 }}>✕</button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ flex:1, overflowY:"auto", padding:"0 16px 12px" }}>
-        {loading && entries.length === 0 ? (
-          <div style={{ textAlign:"center", padding:"40px 0", color:"rgba(255,255,255,0.3)" }}>{t.lbLoading}</div>
-        ) : entries.length === 0 ? (
-          <div style={{ textAlign:"center", padding:"40px 0" }}>
-            <div style={{ marginBottom:12 }}>
-              <Medal size={44} color="rgba(255,255,255,0.15)" strokeWidth={1.5}/>
-            </div>
-            <div style={{ fontSize:15, fontWeight:700, marginBottom:6 }}>{t.lbEmpty}</div>
-            <div style={{ fontSize:13, color:"rgba(255,255,255,0.4)" }}>{t.lbEmptySub}</div>
-          </div>
-        ) : entries.map((entry, i) => {
-          const rank = i + 1;
-          const isMe = entry.userId === userId;
-          const medal = rank <= 3 ? MEDAL_COLORS[rank-1] : null;
-          return (
-            <div key={entry.userId} style={{ display:"flex", alignItems:"center", gap:12,
-              background: isMe ? "rgba(255,214,0,0.1)" : i%2===0 ? "rgba(255,255,255,0.03)" : "transparent",
-              border: isMe ? "1px solid rgba(255,214,0,0.3)" : "1px solid transparent",
-              borderRadius:14, padding:"11px 14px", marginBottom:6 }}>
-              <div style={{ width:32, textAlign:"center", flexShrink:0 }}>
-                {medal ? <Medal size={20} color={medal} fill={medal} strokeWidth={1.5}/>
-                       : <span style={{ fontSize:14, fontWeight:700, color:"rgba(255,255,255,0.4)" }}>{rank}</span>}
-              </div>
-              <div style={{ width:36, height:36, borderRadius:"50%", flexShrink:0,
-                background: isMe ? "rgba(255,214,0,0.2)" : "rgba(255,255,255,0.08)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:15, fontWeight:800, color: isMe ? "#FFD600" : "rgba(255,255,255,0.5)",
-                border:`1px solid ${isMe ? "rgba(255,214,0,0.4)" : "rgba(255,255,255,0.1)"}` }}>
-                {(entry.name||"?")[0].toUpperCase()}
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontWeight: isMe ? 800 : 700, fontSize:14,
-                  color: isMe ? "#FFD600" : "#fff",
-                  whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                  {entry.name || "Anonymous"}{isMe ? ` ${t.lbYou}` : ""}
-                </div>
-                <div style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginTop:2 }}>
-                  {t.lbTaps(entry.taps||0)}
-                </div>
-              </div>
-              <div style={{ fontWeight:900, fontSize:15, flexShrink:0,
-                color: medal ? medal : isMe ? "#FFD600" : "rgba(255,255,255,0.85)" }}>
-                {(entry.balance||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 /* ── Friends Tab ───────────────────────────────────────── */
 function FriendsTab({ userId, refBoostUntil, onRefBoostUpdate, t }) {
@@ -945,7 +724,6 @@ export default function App() {
   const poolIdx          = useRef(0);
   const saveTimer        = useRef(null);
   const screamTimer      = useRef(null);
-  const submitTimer      = useRef(null);
   const coinRef          = useRef(null);
   const tiltTimer        = useRef(null);
   const floatContainerRef = useRef(null);
@@ -1096,22 +874,6 @@ export default function App() {
       }
     }
   }, [userId]);
-
-  /* ── отправка в лидерборд ── */
-  useEffect(() => {
-    if (!userId || balance <= 0 || !userName) return;
-    clearTimeout(submitTimer.current);
-    submitTimer.current = setTimeout(() => {
-      dbSetScore({ userId, name: userName, balance, taps, lang });
-    }, 2000);
-    return () => clearTimeout(submitTimer.current);
-  }, [balance, taps, userId, userName]);
-
-  const handleSetName = useCallback(async (name) => {
-    setUserName(name);
-    LS.set("fahhhh-uid", { id: userId, name });
-    dbSetScore({ userId, name, balance, taps, lang });
-  }, [userId, balance, taps, lang]);
 
   const handleRefBoostUpdate = useCallback((v) => {
     setRefBoostUntil(v);
@@ -1323,7 +1085,6 @@ export default function App() {
       {/* Контент вкладок */}
       {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
-      {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance} t={t}/>}
       {tab === "friends"     && <FriendsTab userId={userId} refBoostUntil={refBoostUntil} t={t}
         onRefBoostUpdate={handleRefBoostUpdate}/>}
       {tab === "withdraw"    && <WithdrawTab balance={balance} t={t} userId={userId} userName={userName}
@@ -1422,7 +1183,6 @@ export default function App() {
           { id:"earn",        Icon:BookOpen,       fl:"1.5" },
           { id:"mine",        Icon:Pickaxe,        fl:"0 0 72px", fab:true },
           { id:"friends",     Icon:Users,          fl:"1"   },
-          { id:"leaderboard", Icon:Medal,          fl:"1"   },
           { id:"withdraw",    Icon:Wallet,         fl:"1"   },
         ].map(({ id, Icon, fl, fab }) => {
           const active = id === tab;
