@@ -414,26 +414,6 @@ function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUnt
         </div>
       </div>
 
-      <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
-        letterSpacing:"0.12em", marginBottom:10 }}>{t.buyOn}</div>
-      {[
-        { name:"STON.fi",   url:`https://app.ston.fi/swap?ft=TON&tt=${CONTRACT}`, color:"#6C63FF" },
-        { name:"DeDust.io", url:`https://dedust.io/swap/TON/${CONTRACT}`,         color:"#0FCBA1" },
-        { name:"Tonviewer", url:`https://tonviewer.com/${CONTRACT}`,              color:"#0098EA" },
-      ].map(link => (
-        <a key={link.name} href={link.url} target="_blank" rel="noreferrer" style={{
-          display:"flex", alignItems:"center", justifyContent:"space-between",
-          background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
-          borderRadius:14, padding:"13px 16px", marginBottom:8, textDecoration:"none", color:"#fff",
-        }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:8, height:8, borderRadius:"50%", background:link.color }}/>
-            <span style={{ fontWeight:700, fontSize:15 }}>{link.name}</span>
-          </div>
-          <ExternalLink size={15} color="rgba(255,255,255,0.35)"/>
-        </a>
-      ))}
-
       {/* Проверка холдинга */}
       <div style={{ marginTop:6, paddingBottom:8 }}>
         <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
