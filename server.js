@@ -38,12 +38,20 @@ function savePlayers() {
   }
 }
 
-// Save every 30 seconds
-setInterval(savePlayers, 30_000);
+// Save every 5 seconds
+setInterval(savePlayers, 5_000);
 
-// Save on graceful shutdown (Render sends SIGTERM before stopping)
-process.on("SIGTERM", () => { savePlayers(); process.exit(0); });
-process.on("SIGINT",  () => { savePlayers(); process.exit(0); });
+// Save on any kind of shutdown signal
+const shutdown = () => { savePlayers(); process.exit(0); };
+process.on("SIGTERM", shutdown);
+process.on("SIGINT",  shutdown);
+process.on("SIGHUP",  shutdown);
+process.on("beforeExit", savePlayers);
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+  savePlayers();
+  process.exit(1);
+});
 
 // ── Constants ───────────────────────────────────────────────
 const REF_BOOST_MS = 30 * 60 * 1000;
