@@ -15,6 +15,7 @@ const SCREAM_MS         = 1900;
 
 // URL бэкенда — задаётся через секрет VITE_API_URL в GitHub Actions
 const API_URL = import.meta.env.VITE_API_URL || "";
+const BUY_URL = "https://t.me/gasPump_bot/app?startapp=eyJyZWZfdXNlcl9pZCI6NTI0Mzg0NzUwLCJ0b2tlbl9hZGRyZXNzIjoiRVFBU1pSMUd3RWw3UU1iUUhLVWRKOTU2SEF3RHczT01xXzdRUGpwamNnNlUxOHJwIn0";
 
 async function dbGetLeaderboard() {
   if (!API_URL) return [];
@@ -359,6 +360,20 @@ function ExchangeTab({ balance, copied, onCopy, t }) {
           </button>
         </div>
       </div>
+
+      <button onClick={() => {
+        const tg = window.Telegram?.WebApp;
+        if (tg?.openTelegramLink) tg.openTelegramLink(BUY_URL);
+        else window.open(BUY_URL, "_blank");
+      }} style={{
+        width:"100%", border:"none", borderRadius:14, padding:"15px",
+        background:"linear-gradient(180deg,#FFE838,#FFA000)",
+        color:"#5C3A06", fontWeight:900, fontSize:16, cursor:"pointer",
+        fontFamily:"inherit", display:"flex", alignItems:"center",
+        justifyContent:"center", gap:8,
+      }}>
+        <ExternalLink size={18}/> {t.buyOn}
+      </button>
 
     </div>
   );
