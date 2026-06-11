@@ -726,9 +726,9 @@ export default function App() {
   });
   const [leagueCelebration, setLeagueCelebration] = useState(null);
 
-  const prevLeagueIdxRef = useRef(null);
-  const confettiCanvasRef = useRef(null);
-  const confettiRafRef   = useRef(null);
+  const prevLeagueIdxRef  = useRef(null);
+  const leagueReadyRef    = useRef(false);
+  const confettiRafRef    = useRef(null);
   const audioPool        = useRef([]);
   const poolIdx          = useRef(0);
   const saveTimer        = useRef(null);
@@ -750,8 +750,6 @@ export default function App() {
   const energyTextRef    = useRef(null);
   const energyBarRef     = useRef(null);
   const tRef             = useRef(null);
-  const audioCtxRef      = useRef(null);
-  const audioBufRef      = useRef(null);
 
   const maxEnergy = MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
@@ -767,6 +765,11 @@ export default function App() {
     if (data.balance) { balanceRef.current = data.balance; setBalance(data.balance); }
     if (data.taps)    { tapsRef.current = data.taps; setTaps(data.taps); }
     if (data.lang)    setLang(data.lang);
+    // разрешаем праздновать лигу только после того как начальный баланс осел
+    // (иначе 0 → сохранённое значение тоже считается "повышением лиги")
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      leagueReadyRef.current = true;
+    }));
   }, []);
 
   /* ── RAF: цифры обновляются напрямую в DOM каждый кадр (дёшево),
@@ -811,52 +814,62 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [balance, taps, lang]);
 
-  /* ── конфетти ── */
+  /* ── конфетти: создаём canvas в body динамически, не держим в DOM ── */
   const startConfetti = useCallback((accentColor) => {
-    const canvas = confettiCanvasRef.current;
-    if (!canvas) return;
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const ctx = canvas.getContext("2d");
-    const COLORS = ["#FFD600","#FFE838","#FFA000","#ffffff","#ff6b6b","#4ecdc4", accentColor];
-    const pts = Array.from({ length: 90 }, () => ({
-      x:  Math.random() * canvas.width,
-      y:  -20 - Math.random() * 60,
-      vx: (Math.random() - 0.5) * 7,
-      vy: Math.random() * 3 + 2,
-      rot: Math.random() * Math.PI * 2,
-      rv: (Math.random() - 0.5) * 0.25,
-      w:  Math.random() * 10 + 5,
-      h:  Math.random() * 5 + 3,
-      col: COLORS[Math.floor(Math.random() * COLORS.length)],
-    }));
-    let start = null;
-    const DURATION = 2800;
-    const tick = (now) => {
-      if (!start) start = now;
-      const t = (now - start) / DURATION;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const p of pts) {
-        p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.rot += p.rv;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, 1 - t * 1.4);
-        ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-        ctx.fillStyle = p.col;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
-      }
-      if (t < 1.3) confettiRafRef.current = requestAnimationFrame(tick);
-      else ctx.clearRect(0, 0, canvas.width, canvas.height);
-    };
-    if (confettiRafRef.current) cancelAnimationFrame(confettiRafRef.current);
-    confettiRafRef.current = requestAnimationFrame(tick);
+    try {
+      if (confettiRafRef.current) cancelAnimationFrame(confettiRafRef.current);
+      const canvas = document.createElement("canvas");
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+      Object.assign(canvas.style, {
+        position:"fixed", top:"0", left:"0",
+        width:"100%", height:"100%",
+        pointerEvents:"none", zIndex:"490",
+      });
+      document.body.appendChild(canvas);
+      const ctx = canvas.getContext("2d");
+      const COLORS = ["#FFD600","#FFE838","#FFA000","#ffffff","#ff6b6b","#4ecdc4", accentColor];
+      const pts = Array.from({ length: 90 }, () => ({
+        x:  Math.random() * canvas.width,
+        y:  -20 - Math.random() * 60,
+        vx: (Math.random() - 0.5) * 7,
+        vy: Math.random() * 3 + 2,
+        rot: Math.random() * Math.PI * 2,
+        rv: (Math.random() - 0.5) * 0.25,
+        w:  Math.random() * 10 + 5,
+        h:  Math.random() * 5 + 3,
+        col: COLORS[Math.floor(Math.random() * COLORS.length)],
+      }));
+      let start = null;
+      const DURATION = 2800;
+      const tick = (now) => {
+        if (!start) start = now;
+        const prog = (now - start) / DURATION;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const p of pts) {
+          p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.rot += p.rv;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, 1 - prog * 1.4);
+          ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.col;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        }
+        if (prog < 1.3) {
+          confettiRafRef.current = requestAnimationFrame(tick);
+        } else {
+          document.body.removeChild(canvas);
+        }
+      };
+      confettiRafRef.current = requestAnimationFrame(tick);
+    } catch {}
   }, []);
 
   /* ── лига ── */
   useEffect(() => {
     let idx = 0;
     for (let i = 0; i < LEAGUES.length; i++) if (balance >= LEAGUES[i].min) idx = i;
-    if (prevLeagueIdxRef.current !== null && idx > prevLeagueIdxRef.current) {
+    if (leagueReadyRef.current && prevLeagueIdxRef.current !== null && idx > prevLeagueIdxRef.current) {
       const league = LEAGUES[idx];
       playSound();
       setTimeout(playSound, 220);
@@ -914,35 +927,6 @@ export default function App() {
   }, []);
 
   const playSound = useCallback(() => {
-    // WebAudio: AudioContext создаётся при первом тапе (требование iOS),
-    // буфер декодируется один раз — дальше каждый play почти бесплатен
-    try {
-      let ctx = audioCtxRef.current;
-      if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) {
-          ctx = new AC();
-          audioCtxRef.current = ctx;
-          fetch(FAAAH_SRC)
-            .then(r => r.arrayBuffer())
-            .then(b => ctx.decodeAudioData(b))
-            .then(buf => { audioBufRef.current = buf; })
-            .catch(() => {});
-        }
-      }
-      if (ctx) {
-        if (ctx.state === "suspended") ctx.resume();
-        const buf = audioBufRef.current;
-        if (buf) {
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          src.connect(ctx.destination);
-          src.start();
-          return;
-        }
-      }
-    } catch {}
-    // фолбэк: пул <audio>, пока WebAudio-буфер не декодирован
     const pool = audioPool.current;
     if (!pool.length) return;
     const a = pool[poolIdx.current++ % pool.length];
@@ -1366,11 +1350,6 @@ export default function App() {
       {/* Модалка языка */}
       {showLang && <LangModal current={lang} onSelect={setLang} onClose={() => setShowLang(false)}/>}
 
-      {/* Конфетти */}
-      <canvas ref={confettiCanvasRef} style={{
-        position:"fixed", inset:0, width:"100%", height:"100%",
-        pointerEvents:"none", zIndex:490,
-      }}/>
 
       {/* Попап новой лиги */}
       {leagueCelebration && (
