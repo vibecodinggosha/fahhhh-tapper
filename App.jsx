@@ -814,6 +814,24 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [balance, taps, lang]);
 
+  /* ── аудио ── */
+  useEffect(() => {
+    try {
+      audioPool.current = Array.from({ length: 6 }, () => {
+        const a = new Audio(FAAAH_SRC);
+        a.preload = "auto"; a.volume = 0.95;
+        return a;
+      });
+    } catch {}
+  }, []);
+
+  const playSound = useCallback(() => {
+    const pool = audioPool.current;
+    if (!pool.length) return;
+    const a = pool[poolIdx.current++ % pool.length];
+    try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
+  }, []);
+
   /* ── конфетти: создаём canvas в body динамически, не держим в DOM ── */
   const startConfetti = useCallback((accentColor) => {
     try {
@@ -913,24 +931,6 @@ export default function App() {
       document.removeEventListener("visibilitychange", save);
       window.removeEventListener("pagehide", save);
     };
-  }, []);
-
-  /* ── аудио ── */
-  useEffect(() => {
-    try {
-      audioPool.current = Array.from({ length: 6 }, () => {
-        const a = new Audio(FAAAH_SRC);
-        a.preload = "auto"; a.volume = 0.95;
-        return a;
-      });
-    } catch {}
-  }, []);
-
-  const playSound = useCallback(() => {
-    const pool = audioPool.current;
-    if (!pool.length) return;
-    const a = pool[poolIdx.current++ % pool.length];
-    try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
   }, []);
 
   /* ── идентификация пользователя ── */
