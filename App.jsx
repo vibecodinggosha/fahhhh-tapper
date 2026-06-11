@@ -909,7 +909,6 @@ export default function App() {
     const elapsed = (Date.now() - saved.savedAt) / 1000;
     return Math.min(MAX_ENERGY, (saved.value ?? MAX_ENERGY) + elapsed * MAX_ENERGY / 1800);
   });
-  const [screaming,        setScreaming]        = useState(false);
   const [tab,              setTab]              = useState("mine");
   const [leagueIdx,        setLeagueIdx]        = useState(0);
   const [copied,           setCopied]           = useState(false);
@@ -935,14 +934,17 @@ export default function App() {
   const coinRef          = useRef(null);
   const tiltTimer        = useRef(null);
   const floatContainerRef = useRef(null);
+  const floatIdxRef      = useRef(0);
   const screamingRef     = useRef(false);
   const maxEnergyRef     = useRef(MAX_ENERGY);
   const energyRef        = useRef(energy);
   const tapValueRef      = useRef(PER_TAP);
+  const balanceRef       = useRef(0);
+  const tapsRef          = useRef(0);
+  const pendingSyncRef   = useRef(false);
 
   const maxEnergy = MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
-  energyRef.current = energy;
   const tapValue = refBoostUntil > Date.now() ? +(PER_TAP * 2).toFixed(2) : PER_TAP;
   tapValueRef.current = tapValue;
 
@@ -951,9 +953,25 @@ export default function App() {
   /* ── загрузка из localStorage ── */
   useEffect(() => {
     const data = LS.get("fahhhh-progress", {});
-    if (data.balance) setBalance(data.balance);
-    if (data.taps)    setTaps(data.taps);
+    if (data.balance) { balanceRef.current = data.balance; setBalance(data.balance); }
+    if (data.taps)    { tapsRef.current = data.taps; setTaps(data.taps); }
     if (data.lang)    setLang(data.lang);
+  }, []);
+
+  /* ── RAF-синхронизация refs → state (60fps, без блокировки) ── */
+  useEffect(() => {
+    let rafId;
+    const loop = () => {
+      if (pendingSyncRef.current) {
+        pendingSyncRef.current = false;
+        setBalance(balanceRef.current);
+        setTaps(tapsRef.current);
+        setEnergy(energyRef.current);
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   /* ── сохранение ── */
@@ -1093,6 +1111,7 @@ export default function App() {
     const updated = { count: currentCount + 1, day: today };
     setBoostToday(updated);
     LS.set("fahhhh-boost-info", updated);
+    energyRef.current = maxEnergyRef.current;
     setEnergy(maxEnergyRef.current);
   }, [boostToday]);
 
@@ -1103,8 +1122,12 @@ export default function App() {
     if (c.children.length >= 6) c.removeChild(c.firstChild);
     const el = document.createElement("span");
     el.textContent = "+" + val;
-    el.style.cssText = `position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-50%);` +
-      `font-weight:900;font-size:28px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.75);` +
+    const idx = floatIdxRef.current++ % 8;
+    const angle = (idx / 8) * Math.PI * 2 - Math.PI / 2;
+    const ox = Math.cos(angle) * 55;
+    const oy = Math.sin(angle) * 35;
+    el.style.cssText = `position:absolute;left:${x + ox}px;top:${y + oy}px;transform:translate(-50%,-50%);` +
+      `font-weight:900;font-size:26px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.75);` +
       `animation:floatUp .9s ease-out forwards;pointer-events:none;white-space:nowrap;font-family:inherit;`;
     c.appendChild(el);
     setTimeout(() => { try { c.removeChild(el); } catch {} }, 950);
@@ -1115,9 +1138,10 @@ export default function App() {
     if (energyRef.current < 1) return;
     const tv = tapValueRef.current;
     playSound();
-    setBalance(b => +(b + tv).toFixed(2));
-    setTaps(t => t + 1);
-    setEnergy(en => Math.max(0, en - 1));
+    balanceRef.current = +(balanceRef.current + tv).toFixed(2);
+    tapsRef.current += 1;
+    energyRef.current = Math.max(0, energyRef.current - 1);
+    pendingSyncRef.current = true;
 
     const rect = coinRef.current?.getBoundingClientRect();
     const cx = e.touches?.[0]?.clientX ?? e.clientX;
@@ -1138,12 +1162,12 @@ export default function App() {
 
     if (!screamingRef.current) {
       screamingRef.current = true;
-      setScreaming(true);
+      coinRef.current?.classList.add("is-screaming");
     }
     clearTimeout(screamTimer.current);
     screamTimer.current = setTimeout(() => {
       screamingRef.current = false;
-      setScreaming(false);
+      coinRef.current?.classList.remove("is-screaming");
     }, SCREAM_MS);
 
     // Флоат — прямой DOM, без React state
@@ -1191,9 +1215,20 @@ export default function App() {
         @keyframes mouthBounce { 0%,100%{transform:scaleY(1) scaleX(1)} 30%{transform:scaleY(1.12) scaleX(1.04)} 70%{transform:scaleY(0.88) scaleX(0.96)} }
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes toastPop { from{opacity:0;transform:translateX(-50%) scale(0.85) translateY(8px)} to{opacity:1;transform:translateX(-50%) scale(1) translateY(0)} }
-        .coin-shake { animation: coinShake 0.18s linear infinite; }
-        .mouth-bounce { animation: mouthBounce 0.18s ease-in-out infinite; }
         .coin-btn { transform: rotateX(var(--cx,0deg)) rotateY(var(--cy,0deg)); transition: transform 130ms ease; will-change: transform; }
+        .coin-btn.is-screaming { animation: coinShake 0.18s linear infinite; }
+        .coin-glow { background: radial-gradient(circle,rgba(255,214,0,0.2) 0%,transparent 70%); transition: background 0.2s; }
+        .coin-btn.is-screaming .coin-glow { background: radial-gradient(circle,rgba(255,80,0,0.3) 0%,transparent 70%); }
+        .normal-face { opacity: 1; transition: opacity 0.08s; }
+        .coin-btn.is-screaming .normal-face { opacity: 0; }
+        .scream-face { opacity: 0; transition: opacity 0.08s; }
+        .coin-btn.is-screaming .scream-face { opacity: 1; }
+        .coin-smile { opacity: 1; transition: opacity 0.08s; }
+        .coin-btn.is-screaming .coin-smile { opacity: 0; }
+        .coin-mouth { opacity: 0; transition: opacity 0.08s; }
+        .coin-btn.is-screaming .coin-mouth { opacity: 1; animation: mouthBounce 0.18s ease-in-out infinite; }
+        .fahhhh-text { transition: fill 0.1s; fill: rgba(93,58,0,0.7); }
+        .coin-btn.is-screaming .fahhhh-text { fill: #fff; }
         @media (prefers-reduced-motion:reduce) { *{animation:none!important;transition:none!important} }
       `}</style>
 
@@ -1267,16 +1302,14 @@ export default function App() {
         <>
           <div style={{ flex:1,display:"flex",alignItems:"center",justifyContent:"center",perspective:"900px",paddingBottom:4 }}>
             <button ref={coinRef} onPointerDown={handleTap} aria-label={t.tapBtn}
-              className={`coin-btn${screaming ? " coin-shake" : ""}`}
+              className="coin-btn"
               style={{
               width:"min(72vw,290px)", height:"min(72vw,290px)",
               borderRadius:"50%", border:"none", padding:0, cursor:"pointer",
               position:"relative", background:"none",
               touchAction:"manipulation",
               WebkitTapHighlightColor:"transparent" }}>
-              <div style={{ position:"absolute",inset:-24,borderRadius:"50%",
-                background: screaming ? "radial-gradient(circle,rgba(255,80,0,0.3) 0%,transparent 70%)" : "radial-gradient(circle,rgba(255,214,0,0.2) 0%,transparent 70%)",
-                filter:"blur(18px)",pointerEvents:"none",transition:"background 0.2s" }}/>
+              <div className="coin-glow" style={{ position:"absolute",inset:-24,borderRadius:"50%",filter:"blur(18px)",pointerEvents:"none" }}/>
               <svg viewBox="0 0 290 290" style={{ width:"100%",height:"100%",display:"block" }}>
                 <defs>
                   <radialGradient id="gc" cx="32%" cy="26%" r="80%">
@@ -1294,20 +1327,18 @@ export default function App() {
                 <circle cx="145" cy="145" r="140" fill="url(#ri)"/>
                 <circle cx="145" cy="145" r="128" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5"/>
                 <ellipse cx="112" cy="86" rx="46" ry="24" fill="rgba(255,255,255,0.3)" transform="rotate(-30 112 86)"/>
-                <g style={{ transition:"opacity 0.08s", opacity: screaming ? 0 : 1 }}>
+                <g className="normal-face">
                   <circle cx="112" cy="130" r="14" fill="#5D3A00"/><circle cx="117" cy="125" r="5" fill="rgba(255,255,255,0.55)"/>
                   <circle cx="178" cy="130" r="14" fill="#5D3A00"/><circle cx="183" cy="125" r="5" fill="rgba(255,255,255,0.55)"/>
                 </g>
-                <g style={{ transition:"opacity 0.08s", opacity: screaming ? 1 : 0 }}>
+                <g className="scream-face">
                   <path d="M 96 116 Q 112 108 128 116" fill="none" stroke="#5D3A00" strokeWidth="7" strokeLinecap="round"/>
                   <path d="M 162 116 Q 178 108 194 116" fill="none" stroke="#5D3A00" strokeWidth="7" strokeLinecap="round"/>
                   <path d="M 98 132 Q 112 122 126 132 Q 112 140 98 132" fill="#5D3A00"/>
                   <path d="M 164 132 Q 178 122 192 132 Q 178 140 164 132" fill="#5D3A00"/>
                 </g>
-                <line x1="112" y1="180" x2="178" y2="180" stroke="#5D3A00" strokeWidth="7" strokeLinecap="round"
-                  style={{ transition:"opacity 0.08s", opacity: screaming ? 0 : 1 }}/>
-                <g className={screaming ? "mouth-bounce" : undefined}
-                  style={{ transition:"opacity 0.08s", opacity: screaming ? 1 : 0 }}>
+                <line x1="112" y1="180" x2="178" y2="180" stroke="#5D3A00" strokeWidth="7" strokeLinecap="round" className="coin-smile"/>
+                <g className="coin-mouth">
                   <ellipse cx="145" cy="192" rx="40" ry="30" fill="#1A0000"/>
                   <path d="M 105 178 Q 125 168 145 172 Q 165 168 185 178" fill="#8B4513"/>
                   <path d="M 105 178 Q 105 222 145 224 Q 185 222 185 178" fill="#A0522D"/>
@@ -1318,9 +1349,7 @@ export default function App() {
                   <ellipse cx="145" cy="200" rx="22" ry="10" fill="#E8474C"/>
                 </g>
                 <text x="145" y="244" textAnchor="middle" fontSize="20" fontWeight="900"
-                  fontFamily="Nunito,sans-serif" letterSpacing="3"
-                  fill={screaming ? "#fff" : "rgba(93,58,0,0.7)"}
-                  style={{ transition:"fill 0.1s" }}>FAHHHH</text>
+                  fontFamily="Nunito,sans-serif" letterSpacing="3" className="fahhhh-text">FAHHHH</text>
               </svg>
               <div ref={floatContainerRef} style={{ position:"absolute",inset:0,pointerEvents:"none",overflow:"visible" }}/>
             </button>
