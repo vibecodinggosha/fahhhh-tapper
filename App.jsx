@@ -1179,8 +1179,8 @@ export default function App() {
         borderTop:"1px solid rgba(255,255,255,0.08)", flexShrink:0,
         position:"relative", overflow:"visible", zIndex:10, minHeight:62 }}>
         {[
-          { id:"exchange",    Icon:ArrowLeftRight, fl:"1.5" },
-          { id:"earn",        Icon:BookOpen,       fl:"1.5" },
+          { id:"exchange",    Icon:ArrowLeftRight, fl:"1" },
+          { id:"earn",        Icon:BookOpen,       fl:"1" },
           { id:"mine",        Icon:Pickaxe,        fl:"0 0 72px", fab:true },
           { id:"friends",     Icon:Users,          fl:"1"   },
           { id:"withdraw",    Icon:Wallet,         fl:"1"   },
