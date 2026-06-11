@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Pickaxe, ArrowLeftRight, BookOpen, Copy, Check,
   Zap, Trophy, Rocket, ExternalLink, Globe, ChevronDown,
-  Medal, RefreshCw, User, Star, Users, Wallet, ClipboardList,
+  Medal, RefreshCw, User, Users, Wallet, ClipboardList,
 } from "lucide-react";
 import { FAAAH_SRC } from "./audio.js";
 
@@ -11,8 +11,6 @@ const PER_TAP           = 0.05;
 const BOT_USERNAME      = import.meta.env.VITE_BOT_USERNAME || "";
 const REF_BOOST_MS      = 30 * 60 * 1000;
 const MAX_ENERGY        = 1000;
-const HOLDER_MAX_ENERGY = 2000;
-const HOLDER_BOOST_MS   = 30 * 60 * 1000;
 const SCREAM_MS         = 1900;
 
 // URL бэкенда — задаётся через секрет VITE_API_URL в GitHub Actions
@@ -109,9 +107,6 @@ const T = {
     perTap:"+" + PER_TAP + " FAHHHH за тап", yourBalance:"Твой баланс",
     contract:"Адрес контракта", copy:"Копировать", copied:"Скопировано", buyOn:"Купить / обменять",
     earnTitle:"Как зарабатывать", earnSub:"Всё что нужно знать об игре",
-    checkHolder:"Проверить холдинг", checkBtn:"Проверить",
-    isHolder:"Холдер FAHHHH", notHolder:"Не холдер", noToken:"На этом кошельке нет FAHHHH",
-    holderBoostBtn:"Активировать бонус (+1000 энергии на 30 мин)", holderBoostDone:"Бонус активирован! ⚡",
     refTitle:"Пригласи друга", refDesc:"За каждого реферала — x2 бонус на 30 минут (суммируется)",
     refLinkLabel:"Твоя реферальная ссылка", refBoostActive: n => `⚡ x2 активен · ${n} мин`,
     refCopy:"Скопировать ссылку", refCopied:"Скопировано!",
@@ -125,8 +120,7 @@ const T = {
     withdrawSent:"Заявка отправлена! Ожидай сообщения.", withdrawNote:"Обработка вручную, обычно до 24 ч.",
     wdHistoryTitle:"История заявок", wdHistoryEmpty:"Заявок пока нет", wdNewRequest:"Новая заявка",
     wdAvailable:"Доступно", wdPending:"На рассмотрении",
-    minShort:"мин", walletHint:"Введи адрес TON-кошелька",
-    holderBalanceTpl: n => `Баланс: ${n} FAHHHH`,
+    minShort:"мин",
     refCodeLabel:"Твой реф-код",
     lbTitle:"Таблица лидеров", lbEnterName:"Введи своё имя",
     lbEnterNameSub:"Оно будет в таблице лидеров", lbJoinBtn:"Войти в топ",
@@ -138,7 +132,6 @@ const T = {
       { title:"Тапай монету",          desc:`Нажимай на большую монету — каждый тап приносит +${PER_TAP} FAHHHH.` },
       { title:"Следи за энергией",     desc:"Каждый тап тратит 1 энергию. Максимум 1000. С нуля восстанавливается за 30 минут." },
       { title:"Буст — перезарядка",    desc:"Мгновенно восстанавливает всю энергию. Максимум 2 буста в день." },
-      { title:"Бонус холдера",         desc:"Держишь FAHHHH? Проверь кошелёк в разделе Обмен — получишь +1000 к максимуму энергии на 30 минут." },
       { title:"Рефералы",              desc:"Пригласи друга по своей ссылке (раздел Обмен) — получишь x2 на все тапы на 30 минут. Каждый реферал добавляет ещё +30 мин." },
       { title:"Лиги и прогресс",       desc:"Баланс → лига: Bronze → Silver → Gold → Platinum → Diamond." },
       { title:"Реальный токен TON",    desc:"FAHHHH — настоящий jetton-токен. Обменяй на STON.fi или DeDust." },
@@ -153,9 +146,6 @@ const T = {
     perTap:"+" + PER_TAP + " FAHHHH per tap", yourBalance:"Your balance",
     contract:"Contract address", copy:"Copy", copied:"Copied", buyOn:"Buy / swap",
     earnTitle:"How to earn", earnSub:"Everything you need to know",
-    checkHolder:"Check holdings", checkBtn:"Check",
-    isHolder:"FAHHHH Holder", notHolder:"Not a holder", noToken:"No FAHHHH on this wallet",
-    holderBoostBtn:"Activate bonus (+1000 energy for 30 min)", holderBoostDone:"Bonus activated! ⚡",
     refTitle:"Invite a friend", refDesc:"Each referral gives you x2 bonus for 30 min (stacks)",
     refLinkLabel:"Your referral link", refBoostActive: n => `⚡ x2 active · ${n} min`,
     refCopy:"Copy link", refCopied:"Copied!",
@@ -169,8 +159,7 @@ const T = {
     withdrawSent:"Request sent! Await a message.", withdrawNote:"Processed manually, usually within 24h.",
     wdHistoryTitle:"Request history", wdHistoryEmpty:"No requests yet", wdNewRequest:"New request",
     wdAvailable:"Available", wdPending:"Pending",
-    minShort:"min", walletHint:"Enter your TON wallet address",
-    holderBalanceTpl: n => `Balance: ${n} FAHHHH`,
+    minShort:"min",
     refCodeLabel:"Your ref code",
     lbTitle:"Leaderboard", lbEnterName:"Enter your name",
     lbEnterNameSub:"It will show on the leaderboard", lbJoinBtn:"Join the top",
@@ -182,8 +171,7 @@ const T = {
       { title:"Tap the coin",           desc:`Press the big coin — each tap gives +${PER_TAP} FAHHHH.` },
       { title:"Watch your energy",      desc:"Each tap costs 1 energy. Max 1000. Refills from zero in 30 minutes." },
       { title:"Boost — instant refill", desc:"Instantly restores all energy. Max 2 boosts per day." },
-      { title:"Holder bonus",           desc:"Hold FAHHHH? Check your wallet in Exchange — get +1000 max energy for 30 min." },
-      { title:"Referrals",              desc:"Share your link (Exchange tab) — get x2 on all taps for 30 min. Every referral adds another +30 min." },
+      { title:"Referrals",              desc:"Share your link (Friends tab) — get x2 on all taps for 30 min. Every referral adds another +30 min." },
       { title:"Leagues & progress",     desc:"Balance → league: Bronze → Silver → Gold → Platinum → Diamond." },
       { title:"Real TON token",         desc:"FAHHHH is a real jetton token. Trade on STON.fi or DeDust." },
     ],
@@ -197,9 +185,6 @@ const T = {
     perTap:"每次 +" + PER_TAP + " FAHHHH", yourBalance:"我的余额",
     contract:"合约地址", copy:"复制", copied:"已复制", buyOn:"购买 / 兑换",
     earnTitle:"如何赚取", earnSub:"游戏说明",
-    checkHolder:"查询持仓", checkBtn:"查询",
-    isHolder:"FAHHHH持有者", notHolder:"非持有者", noToken:"此钱包无FAHHHH",
-    holderBoostBtn:"激活奖励 (+1000能量30分钟)", holderBoostDone:"奖励已激活！⚡",
     refTitle:"邀请好友", refDesc:"每位推荐人给你30分钟x2奖励（可叠加）",
     refLinkLabel:"你的推荐链接", refBoostActive: n => `⚡ x2激活 · ${n}分钟`,
     refCopy:"复制链接", refCopied:"已复制！",
@@ -213,8 +198,7 @@ const T = {
     withdrawSent:"申请已提交！", withdrawNote:"人工处理，通常24小时内。",
     wdHistoryTitle:"申请记录", wdHistoryEmpty:"暂无申请", wdNewRequest:"新申请",
     wdAvailable:"可用", wdPending:"待处理",
-    minShort:"分", walletHint:"输入TON钱包地址",
-    holderBalanceTpl: n => `余额: ${n} FAHHHH`,
+    minShort:"分",
     refCodeLabel:"你的推荐码",
     lbTitle:"排行榜", lbEnterName:"输入你的名字",
     lbEnterNameSub:"将显示在排行榜上", lbJoinBtn:"加入榜单",
@@ -226,8 +210,7 @@ const T = {
       { title:"点击金币",      desc:`每次点击获得 +${PER_TAP} FAHHHH。` },
       { title:"注意能量",      desc:"每次消耗1能量，上限1000，从零恢复需30分钟。" },
       { title:"加速",          desc:"立即回满能量。每天最多2次。" },
-      { title:"持有者奖励",    desc:"持有FAHHHH？在交易页验证钱包，获得+1000最大能量（30分钟）。" },
-      { title:"推荐好友",      desc:"分享你的推荐链接（交易页）— 获得30分钟x2点击奖励。每位推荐再加+30分钟。" },
+      { title:"推荐好友",      desc:"分享你的推荐链接（好友页）— 获得30分钟x2点击奖励。每位推荐再加+30分钟。" },
       { title:"联赛",          desc:"余额决定联赛：铜→银→金→铂金→钻石。" },
       { title:"真实TON代币",   desc:"FAHHHH是真实jetton，可在STON.fi或DeDust交易。" },
     ],
@@ -241,9 +224,6 @@ const T = {
     perTap:"+" + PER_TAP + " لكل نقرة", yourBalance:"رصيدك",
     contract:"عنوان العقد", copy:"نسخ", copied:"تم النسخ", buyOn:"شراء / تبادل",
     earnTitle:"كيف تكسب", earnSub:"شرح اللعبة",
-    checkHolder:"التحقق من الحيازة", checkBtn:"تحقق",
-    isHolder:"حامل FAHHHH", notHolder:"ليس حاملاً", noToken:"لا يوجد FAHHHH في هذه المحفظة",
-    holderBoostBtn:"تفعيل المكافأة (+1000 طاقة لمدة 30 دقيقة)", holderBoostDone:"تم تفعيل المكافأة! ⚡",
     refTitle:"ادعُ صديقاً", refDesc:"كل إحالة تمنحك مكافأة x2 لمدة 30 دقيقة (تتراكم)",
     refLinkLabel:"رابط الإحالة الخاص بك", refBoostActive: n => `⚡ x2 نشط · ${n} دقيقة`,
     refCopy:"نسخ الرابط", refCopied:"تم النسخ!",
@@ -257,8 +237,7 @@ const T = {
     withdrawSent:"تم إرسال الطلب!", withdrawNote:"معالجة يدوية، خلال 24 ساعة.",
     wdHistoryTitle:"سجل الطلبات", wdHistoryEmpty:"لا طلبات بعد", wdNewRequest:"طلب جديد",
     wdAvailable:"متاح", wdPending:"قيد المعالجة",
-    minShort:"د", walletHint:"أدخل عنوان محفظة TON",
-    holderBalanceTpl: n => `الرصيد: ${n} FAHHHH`,
+    minShort:"د",
     refCodeLabel:"رمز الإحالة",
     lbTitle:"المتصدرون", lbEnterName:"أدخل اسمك",
     lbEnterNameSub:"سيظهر في قائمة المتصدرين", lbJoinBtn:"انضم للقائمة",
@@ -270,8 +249,7 @@ const T = {
       { title:"انقر العملة",    desc:`كل نقرة تمنحك +${PER_TAP} FAHHHH.` },
       { title:"راقب الطاقة",    desc:"كل نقرة تستهلك 1 طاقة. الحد 1000. تُستعاد من الصفر في 30 دقيقة." },
       { title:"تعزيز",          desc:"يستعيد الطاقة كاملة فوراً. الحد مرتان يومياً." },
-      { title:"مكافأة الحامل",  desc:"تحمل FAHHHH؟ تحقق من محفظتك في التبادل واحصل على +1000 طاقة لمدة 30 دقيقة." },
-      { title:"الإحالات",       desc:"شارك رابطك (صفحة التبادل) — احصل على x2 لجميع النقرات لمدة 30 دقيقة. كل إحالة تضيف +30 دقيقة." },
+      { title:"الإحالات",       desc:"شارك رابطك (صفحة الأصدقاء) — احصل على x2 لجميع النقرات لمدة 30 دقيقة. كل إحالة تضيف +30 دقيقة." },
       { title:"الدوريات",       desc:"برونز → فضة → ذهب → بلاتين → ألماس." },
       { title:"رمز TON حقيقي",  desc:"FAHHHH رمز حقيقي. تداوله على STON.fi أو DeDust." },
     ],
@@ -285,9 +263,6 @@ const T = {
     perTap:"+" + PER_TAP + " प्रति टैप", yourBalance:"आपका बैलेंस",
     contract:"कॉन्ट्रैक्ट पता", copy:"कॉपी", copied:"कॉपी हो गया", buyOn:"खरीदें / स्वैप",
     earnTitle:"कैसे कमाएं", earnSub:"गेम की जानकारी",
-    checkHolder:"होल्डिंग जांचें", checkBtn:"जांचें",
-    isHolder:"FAHHHH होल्डर", notHolder:"होल्डर नहीं", noToken:"इस वॉलेट में FAHHHH नहीं",
-    holderBoostBtn:"बोनस सक्रिय करें (+1000 ऊर्जा 30 मिनट)", holderBoostDone:"बोनस सक्रिय! ⚡",
     refTitle:"दोस्त को आमंत्रित करें", refDesc:"हर रेफरल पर 30 मिनट x2 बोनस (जुड़ता है)",
     refLinkLabel:"आपका रेफरल लिंक", refBoostActive: n => `⚡ x2 एक्टिव · ${n} मिनट`,
     refCopy:"लिंक कॉपी करें", refCopied:"कॉपी हो गया!",
@@ -301,8 +276,7 @@ const T = {
     withdrawSent:"अनुरोध भेजा गया!", withdrawNote:"24 घंटे के भीतर मैन्युअल प्रोसेसिंग।",
     wdHistoryTitle:"अनुरोध इतिहास", wdHistoryEmpty:"अभी कोई अनुरोध नहीं", wdNewRequest:"नया अनुरोध",
     wdAvailable:"उपलब्ध", wdPending:"प्रक्रियाधीन",
-    minShort:"मि", walletHint:"TON वॉलेट पता दर्ज करें",
-    holderBalanceTpl: n => `बैलेंस: ${n} FAHHHH`,
+    minShort:"मि",
     refCodeLabel:"आपका रेफ कोड",
     lbTitle:"लीडरबोर्ड", lbEnterName:"अपना नाम दर्ज करें",
     lbEnterNameSub:"यह लीडरबोर्ड पर दिखेगा", lbJoinBtn:"टॉप में शामिल हों",
@@ -314,8 +288,7 @@ const T = {
       { title:"सिक्के पर टैप",   desc:`हर टैप से +${PER_TAP} FAHHHH मिलते हैं।` },
       { title:"एनर्जी देखें",    desc:"हर टैप 1 एनर्जी खर्च करता है। मैक्स 1000। शून्य से 30 मिनट में भरती है।" },
       { title:"बूस्ट",           desc:"एनर्जी तुरंत पूरी हो जाती है। दिन में अधिकतम 2 बार।" },
-      { title:"होल्डर बोनस",     desc:"FAHHHH होल्ड करते हैं? Exchange में चेक करें — 30 मिनट के लिए +1000 एनर्जी।" },
-      { title:"रेफरल",           desc:"अपना लिंक शेयर करें (Exchange टैब) — 30 मिनट x2 टैप बोनस। हर रेफरल +30 मिनट जोड़ता है।" },
+      { title:"रेफरल",           desc:"अपना लिंक शेयर करें (दोस्त टैब) — 30 मिनट x2 टैप बोनस। हर रेफरल +30 मिनट जोड़ता है।" },
       { title:"लीग",             desc:"Bronze → Silver → Gold → Platinum → Diamond।" },
       { title:"TON टोकन",        desc:"FAHHHH असली जेटन टोकन है।" },
     ],
@@ -334,34 +307,7 @@ const LS = {
 };
 
 /* ── Exchange Tab ──────────────────────────────────────── */
-function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUntil }) {
-  const [wallet,       setWallet]       = useState("");
-  const [checking,     setChecking]     = useState(false);
-  const [result,       setResult]       = useState(null);
-  const [boostUsed,    setBoostUsed]    = useState(false);
-
-  const boostActive = holderBoostUntil > Date.now();
-  const boostMinsLeft = boostActive ? Math.ceil((holderBoostUntil - Date.now()) / 60000) : 0;
-
-  const checkHolder = async () => {
-    const addr = wallet.trim();
-    if (!addr) return;
-    setChecking(true); setResult(null);
-    try {
-      const url = `https://tonapi.io/v2/accounts/${encodeURIComponent(addr)}/jettons/${encodeURIComponent(CONTRACT)}`;
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      if (res.status === 404) { setResult({ isHolder: false, amount: 0 }); }
-      else if (res.ok) {
-        const data = await res.json();
-        const decimals = data.jetton?.decimals ?? 9;
-        const amount = parseFloat(data.balance || "0") / Math.pow(10, decimals);
-        setResult({ isHolder: amount > 0, amount });
-      } else { throw new Error("API " + res.status); }
-    } catch (e) {
-      setResult({ error: e.message?.includes("fetch") ? "Не удалось подключиться к TON API" : e.message });
-    }
-    setChecking(false);
-  };
+function ExchangeTab({ balance, copied, onCopy, t }) {
 
   return (
     <div style={{ flex:1, overflowY:"auto", padding:"20px 20px 8px" }}>
@@ -414,86 +360,13 @@ function ExchangeTab({ balance, copied, onCopy, t, onHolderBoost, holderBoostUnt
         </div>
       </div>
 
-      {/* Проверка холдинга */}
-      <div style={{ marginTop:6, paddingBottom:8 }}>
-        <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase",
-          letterSpacing:"0.12em", marginBottom:10 }}>{t.checkHolder}</div>
-        <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)",
-          borderRadius:16, padding:"14px 16px", marginBottom: result ? 10 : 0 }}>
-          <div style={{ fontSize:12, color:"rgba(255,255,255,0.4)", marginBottom:8 }}>
-            {t.walletHint}
-          </div>
-          <div style={{ display:"flex", gap:8 }}>
-            <input value={wallet} onChange={e => { setWallet(e.target.value); setResult(null); }}
-              onKeyDown={e => e.key==="Enter" && checkHolder()}
-              placeholder="EQ..."
-              style={{ flex:1, background:"rgba(255,255,255,0.07)", border:"1px solid rgba(255,255,255,0.12)",
-                borderRadius:10, padding:"10px 12px", color:"#fff", fontSize:13,
-                fontFamily:"monospace", outline:"none" }}/>
-            <button onClick={checkHolder} disabled={checking || !wallet.trim()} style={{
-              background: (checking||!wallet.trim()) ? "rgba(255,255,255,0.05)" : "linear-gradient(180deg,#FFE838,#FFA000)",
-              border:"none", borderRadius:10, padding:"10px 16px",
-              color: (checking||!wallet.trim()) ? "rgba(255,255,255,0.25)" : "#5C3A06",
-              fontWeight:800, fontSize:13, cursor: (checking||!wallet.trim()) ? "default" : "pointer",
-              fontFamily:"inherit", flexShrink:0, minWidth:80, transition:"all .2s",
-            }}>
-              {checking ? "..." : t.checkBtn}
-            </button>
-          </div>
-        </div>
-        {result && !result.error && (
-          <div style={{ background: result.isHolder ? "rgba(52,211,153,0.08)" : "rgba(255,80,80,0.07)",
-            border:`1px solid ${result.isHolder ? "rgba(52,211,153,0.3)" : "rgba(255,80,80,0.2)"}`,
-            borderRadius:16, padding:"16px" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-              <div style={{ width:44, height:44, borderRadius:"50%", flexShrink:0,
-                background: result.isHolder ? "rgba(52,211,153,0.15)" : "rgba(255,80,80,0.12)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:20, fontWeight:900, color: result.isHolder ? "#34D399" : "#FF6060" }}>
-                {result.isHolder ? "✓" : "✗"}
-              </div>
-              <div>
-                <div style={{ fontWeight:800, fontSize:15, color: result.isHolder ? "#34D399" : "#FF6060" }}>
-                  {result.isHolder ? t.isHolder : t.notHolder}
-                </div>
-                <div style={{ fontSize:13, color:"rgba(255,255,255,0.5)", marginTop:3 }}>
-                  {result.isHolder
-                    ? t.holderBalanceTpl(result.amount.toLocaleString("en-US",{maximumFractionDigits:4}))
-                    : t.noToken}
-                </div>
-              </div>
-            </div>
-            {result.isHolder && (
-              <button onClick={() => { if (!boostUsed && !boostActive) { onHolderBoost(); setBoostUsed(true); } }}
-                disabled={boostUsed || boostActive}
-                style={{ marginTop:12, width:"100%", border:"none", borderRadius:12, padding:"11px",
-                  background: (boostUsed || boostActive) ? "rgba(255,255,255,0.06)" : "linear-gradient(180deg,#4ADE80,#22C55E)",
-                  color: (boostUsed || boostActive) ? "rgba(255,255,255,0.4)" : "#fff",
-                  fontWeight:800, fontSize:13, cursor: (boostUsed || boostActive) ? "default" : "pointer",
-                  fontFamily:"inherit" }}>
-                {(boostUsed || boostActive)
-                  ? (boostActive ? `${t.holderBoostDone} (${boostMinsLeft} ${t.minShort})` : t.holderBoostDone)
-                  : t.holderBoostBtn}
-              </button>
-            )}
-          </div>
-        )}
-        {result?.error && (
-          <div style={{ background:"rgba(255,170,0,0.07)", border:"1px solid rgba(255,170,0,0.22)",
-            borderRadius:16, padding:"14px 16px", display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontSize:18 }}>⚠</span>
-            <span style={{ fontSize:13, color:"rgba(255,200,80,0.9)" }}>{result.error}</span>
-          </div>
-        )}
-      </div>
-
     </div>
   );
 }
 
 /* ── Earn Tab ──────────────────────────────────────────── */
-const EARN_ICONS  = [Pickaxe, Zap, Rocket, Star, Users, Trophy, ArrowLeftRight];
-const EARN_COLORS = ["#FFD600","#FFB800","#60A5FA","#34D399","#F472B6","#E879F9","#A78BFA"];
+const EARN_ICONS  = [Pickaxe, Zap, Rocket, Users, Trophy, ArrowLeftRight];
+const EARN_COLORS = ["#FFD600","#FFB800","#60A5FA","#F472B6","#E879F9","#A78BFA"];
 
 function EarnTab({ t }) {
   return (
@@ -1045,10 +918,6 @@ export default function App() {
   const [showLang,         setShowLang]         = useState(false);
   const [userId,           setUserId]           = useState("");
   const [userName,         setUserName]         = useState("");
-  const [holderBoostUntil, setHolderBoostUntil] = useState(() => {
-    const v = LS.get("fahhhh-holder-boost", 0);
-    return v > Date.now() ? v : 0;
-  });
   const [boostToday, setBoostToday] = useState(() => {
     const v = LS.get("fahhhh-boost-info", { count: 0, day: "" });
     return v.day === todayISO() ? v : { count: 0, day: todayISO() };
@@ -1071,7 +940,7 @@ export default function App() {
   const energyRef        = useRef(energy);
   const tapValueRef      = useRef(PER_TAP);
 
-  const maxEnergy = holderBoostUntil > Date.now() ? HOLDER_MAX_ENERGY : MAX_ENERGY;
+  const maxEnergy = MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
   energyRef.current = energy;
   const tapValue = refBoostUntil > Date.now() ? +(PER_TAP * 2).toFixed(2) : PER_TAP;
@@ -1132,19 +1001,6 @@ export default function App() {
       window.removeEventListener("pagehide", save);
     };
   }, []);
-
-  /* ── истечение буста холдера ── */
-  useEffect(() => {
-    if (!holderBoostUntil) return;
-    const remaining = holderBoostUntil - Date.now();
-    if (remaining <= 0) { setHolderBoostUntil(0); return; }
-    const tid = setTimeout(() => {
-      setHolderBoostUntil(0);
-      LS.set("fahhhh-holder-boost", 0);
-      setEnergy(e => Math.min(e, MAX_ENERGY));
-    }, remaining);
-    return () => clearTimeout(tid);
-  }, [holderBoostUntil]);
 
   /* ── аудио ── */
   useEffect(() => {
@@ -1222,13 +1078,6 @@ export default function App() {
     LS.set("fahhhh-uid", { id: userId, name });
     dbSetScore({ userId, name, balance, taps, lang });
   }, [userId, balance, taps, lang]);
-
-  const handleHolderBoost = useCallback(() => {
-    const expiry = Date.now() + HOLDER_BOOST_MS;
-    setHolderBoostUntil(expiry);
-    LS.set("fahhhh-holder-boost", expiry);
-    setEnergy(HOLDER_MAX_ENERGY);
-  }, []);
 
   const handleRefBoostUpdate = useCallback((v) => {
     setRefBoostUntil(v);
@@ -1405,8 +1254,7 @@ export default function App() {
       )}
 
       {/* Контент вкладок */}
-      {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}
-        onHolderBoost={handleHolderBoost} holderBoostUntil={holderBoostUntil}/>}
+      {tab === "exchange"    && <ExchangeTab balance={balance} copied={copied} onCopy={copyContract} t={t}/>}
       {tab === "earn"        && <EarnTab t={t}/>}
       {tab === "leaderboard" && <LeaderboardTab userId={userId} userName={userName} onSetName={handleSetName} currentBalance={balance} t={t}/>}
       {tab === "friends"     && <FriendsTab userId={userId} refBoostUntil={refBoostUntil} t={t}

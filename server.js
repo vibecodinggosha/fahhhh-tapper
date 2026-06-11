@@ -20,19 +20,28 @@ app.use(express.json());
 // ── Persistence ────────────────────────────────────────────
 let players = {};
 
-try {
-  if (fs.existsSync(DATA_FILE)) {
-    players = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    console.log(`Loaded ${Object.keys(players).length} players from ${DATA_FILE}`);
+console.log(`Data file: ${DATA_FILE}`);
+for (const f of [DATA_FILE, DATA_FILE + ".bak"]) {
+  try {
+    if (fs.existsSync(f)) {
+      const parsed = JSON.parse(fs.readFileSync(f, "utf8"));
+      players = parsed;
+      console.log(`Loaded ${Object.keys(players).length} players from ${f}`);
+      break;
+    }
+  } catch (e) {
+    console.error(`Failed to load ${f}:`, e.message);
   }
-} catch (e) {
-  console.error("Failed to load players.json:", e.message);
 }
 
 function savePlayers() {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(players), "utf8");
+    const tmp = DATA_FILE + ".tmp";
+    const data = JSON.stringify(players);
+    fs.writeFileSync(tmp, data, "utf8");
+    fs.renameSync(tmp, DATA_FILE);
+    fs.writeFileSync(DATA_FILE + ".bak", data, "utf8");
   } catch (e) {
     console.error("Failed to save players.json:", e.message);
   }
