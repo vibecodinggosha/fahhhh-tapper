@@ -25,6 +25,7 @@ let players = {};
 // leaderboard with an empty {} after a single bad read. This was the bug that
 // kept resetting the board.
 let loadedOk = false;
+let skipWarnLogged = false;
 
 console.log(`Data file: ${DATA_FILE}`);
 for (const f of [DATA_FILE, DATA_FILE + ".bak"]) {
@@ -54,7 +55,10 @@ function savePlayers() {
   //  1. Startup load failed → players is {} but real files still on disk.
   //  2. loadedOk is false → we don't trust our in-memory state yet.
   if (count === 0 && (fs.existsSync(DATA_FILE) || fs.existsSync(DATA_FILE + ".bak"))) {
-    console.error("Skipping save: refusing to overwrite existing data with empty set");
+    if (!skipWarnLogged) {
+      console.error("Skipping save: refusing to overwrite existing data with empty set");
+      skipWarnLogged = true;
+    }
     return;
   }
   if (!loadedOk && count === 0) {
@@ -106,12 +110,14 @@ app.get("/leaderboard", (req, res) => {
   const list = Object.values(players)
     .sort((a, b) => b.balance - a.balance)
     .slice(0, 100);
+  console.log(`GET /leaderboard → ${list.length} players`);
   res.json({ players: list });
 });
 
 // POST /score
 app.post("/score", (req, res) => {
   const { userId, name, balance, taps, lang } = req.body;
+  console.log(`POST /score userId=${userId} name=${name} balance=${balance}`);
   if (!userId) return res.status(400).json({ error: "no userId" });
   const existing = players[userId];
   if (existing && existing.balance > parseFloat(balance)) {
@@ -127,6 +133,7 @@ app.post("/score", (req, res) => {
     lang:    lang || players[userId]?.lang || "ru",
     ts:      Date.now(),
   };
+  console.log(`  → saved, total players: ${Object.keys(players).length}`);
   res.json({ ok: true });
 });
 
