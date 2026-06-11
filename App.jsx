@@ -935,6 +935,7 @@ export default function App() {
   const tiltTimer        = useRef(null);
   const floatContainerRef = useRef(null);
   const floatIdxRef      = useRef(0);
+  const floatPoolRef     = useRef([]);
   const screamingRef     = useRef(false);
   const maxEnergyRef     = useRef(MAX_ENERGY);
   const energyRef        = useRef(energy);
@@ -1115,22 +1116,39 @@ export default function App() {
     setEnergy(maxEnergyRef.current);
   }, [boostToday]);
 
-  /* ── прямой DOM: плавающий "+N" ── */
+  /* ── прямой DOM: плавающий "+N" — пул из 8 элементов, Web Animations API ── */
   const spawnFloat = useCallback((x, y, val) => {
     const c = floatContainerRef.current;
     if (!c) return;
-    if (c.children.length >= 6) c.removeChild(c.firstChild);
-    const el = document.createElement("span");
-    el.textContent = "+" + val;
-    const idx = floatIdxRef.current++ % 8;
-    const angle = (idx / 8) * Math.PI * 2 - Math.PI / 2;
+
+    // Пересоздаём пул если контейнер сменился (переключение вкладок)
+    if (!floatPoolRef.current.length || floatPoolRef.current[0].parentNode !== c) {
+      floatPoolRef.current = Array.from({ length: 8 }, () => {
+        const el = document.createElement("span");
+        el.style.cssText = `position:absolute;pointer-events:none;white-space:nowrap;` +
+          `font-weight:900;font-size:26px;color:#fff;will-change:transform,opacity;` +
+          `font-family:inherit;opacity:0;`;
+        c.appendChild(el);
+        return el;
+      });
+    }
+
+    const pool = floatPoolRef.current;
+    const idx  = floatIdxRef.current++ % pool.length;
+    const angle = (idx / pool.length) * Math.PI * 2 - Math.PI / 2;
     const ox = Math.cos(angle) * 55;
     const oy = Math.sin(angle) * 35;
-    el.style.cssText = `position:absolute;left:${x + ox}px;top:${y + oy}px;transform:translate(-50%,-50%);` +
-      `font-weight:900;font-size:26px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.75);` +
-      `animation:floatUp .9s ease-out forwards;pointer-events:none;white-space:nowrap;font-family:inherit;`;
-    c.appendChild(el);
-    setTimeout(() => { try { c.removeChild(el); } catch {} }, 950);
+
+    const el = pool[idx];
+    el.textContent = "+" + val;
+    el.style.left = (x + ox) + "px";
+    el.style.top  = (y + oy) + "px";
+
+    el.getAnimations().forEach(a => a.cancel());
+    el.animate([
+      { opacity: 1, transform: "translate(-50%,-50%) scale(1.1)" },
+      { opacity: 0, transform: "translate(-50%,-210px) scale(1)" },
+    ], { duration: 900, easing: "ease-out", fill: "forwards" });
   }, []);
 
   /* ── тап ── */
@@ -1163,12 +1181,11 @@ export default function App() {
     if (!screamingRef.current) {
       screamingRef.current = true;
       coinRef.current?.classList.add("is-screaming");
+      screamTimer.current = setTimeout(() => {
+        screamingRef.current = false;
+        coinRef.current?.classList.remove("is-screaming");
+      }, SCREAM_MS);
     }
-    clearTimeout(screamTimer.current);
-    screamTimer.current = setTimeout(() => {
-      screamingRef.current = false;
-      coinRef.current?.classList.remove("is-screaming");
-    }, SCREAM_MS);
 
     // Флоат — прямой DOM, без React state
     spawnFloat(x, y, tv);
