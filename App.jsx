@@ -94,6 +94,7 @@ const T = {
     wdHistoryTitle:"История заявок", wdHistoryEmpty:"Заявок пока нет", wdNewRequest:"Новая заявка",
     wdAvailable:"Доступно", wdPending:"На рассмотрении",
     minShort:"мин",
+    newLeague:"🎉 Новая лига!",
     refCodeLabel:"Твой реф-код",
     lbTaps: n => n.toLocaleString("ru-RU") + " тапов",
     earnItems:[
@@ -128,6 +129,7 @@ const T = {
     wdHistoryTitle:"Request history", wdHistoryEmpty:"No requests yet", wdNewRequest:"New request",
     wdAvailable:"Available", wdPending:"Pending",
     minShort:"min",
+    newLeague:"🎉 New league!",
     refCodeLabel:"Your ref code",
     lbTaps: n => n.toLocaleString() + " taps",
     earnItems:[
@@ -162,6 +164,7 @@ const T = {
     wdHistoryTitle:"申请记录", wdHistoryEmpty:"暂无申请", wdNewRequest:"新申请",
     wdAvailable:"可用", wdPending:"待处理",
     minShort:"分",
+    newLeague:"🎉 新联赛！",
     refCodeLabel:"你的推荐码",
     lbTaps: n => n.toLocaleString() + " 次",
     earnItems:[
@@ -196,6 +199,7 @@ const T = {
     wdHistoryTitle:"سجل الطلبات", wdHistoryEmpty:"لا طلبات بعد", wdNewRequest:"طلب جديد",
     wdAvailable:"متاح", wdPending:"قيد المعالجة",
     minShort:"د",
+    newLeague:"🎉 دوري جديد!",
     refCodeLabel:"رمز الإحالة",
     lbTaps: n => n.toLocaleString() + " نقرة",
     earnItems:[
@@ -230,6 +234,7 @@ const T = {
     wdHistoryTitle:"अनुरोध इतिहास", wdHistoryEmpty:"अभी कोई अनुरोध नहीं", wdNewRequest:"नया अनुरोध",
     wdAvailable:"उपलब्ध", wdPending:"प्रक्रियाधीन",
     minShort:"मि",
+    newLeague:"🎉 नई लीग!",
     refCodeLabel:"आपका रेफ कोड",
     lbTaps: n => n.toLocaleString() + " टैप",
     earnItems:[
@@ -719,7 +724,11 @@ export default function App() {
     const v = LS.get("fahhhh-ref-boost", 0);
     return v > Date.now() ? v : 0;
   });
+  const [leagueCelebration, setLeagueCelebration] = useState(null);
 
+  const prevLeagueIdxRef = useRef(null);
+  const confettiCanvasRef = useRef(null);
+  const confettiRafRef   = useRef(null);
   const audioPool        = useRef([]);
   const poolIdx          = useRef(0);
   const saveTimer        = useRef(null);
@@ -802,12 +811,63 @@ export default function App() {
     return () => clearTimeout(saveTimer.current);
   }, [balance, taps, lang]);
 
+  /* ── конфетти ── */
+  const startConfetti = useCallback((accentColor) => {
+    const canvas = confettiCanvasRef.current;
+    if (!canvas) return;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext("2d");
+    const COLORS = ["#FFD600","#FFE838","#FFA000","#ffffff","#ff6b6b","#4ecdc4", accentColor];
+    const pts = Array.from({ length: 90 }, () => ({
+      x:  Math.random() * canvas.width,
+      y:  -20 - Math.random() * 60,
+      vx: (Math.random() - 0.5) * 7,
+      vy: Math.random() * 3 + 2,
+      rot: Math.random() * Math.PI * 2,
+      rv: (Math.random() - 0.5) * 0.25,
+      w:  Math.random() * 10 + 5,
+      h:  Math.random() * 5 + 3,
+      col: COLORS[Math.floor(Math.random() * COLORS.length)],
+    }));
+    let start = null;
+    const DURATION = 2800;
+    const tick = (now) => {
+      if (!start) start = now;
+      const t = (now - start) / DURATION;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of pts) {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.rot += p.rv;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - t * 1.4);
+        ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = p.col;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      if (t < 1.3) confettiRafRef.current = requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    if (confettiRafRef.current) cancelAnimationFrame(confettiRafRef.current);
+    confettiRafRef.current = requestAnimationFrame(tick);
+  }, []);
+
   /* ── лига ── */
   useEffect(() => {
     let idx = 0;
     for (let i = 0; i < LEAGUES.length; i++) if (balance >= LEAGUES[i].min) idx = i;
+    if (prevLeagueIdxRef.current !== null && idx > prevLeagueIdxRef.current) {
+      const league = LEAGUES[idx];
+      playSound();
+      setTimeout(playSound, 220);
+      setTimeout(playSound, 440);
+      startConfetti(league.color);
+      setLeagueCelebration(league);
+      setTimeout(() => setLeagueCelebration(null), 3200);
+    }
+    prevLeagueIdxRef.current = idx;
     setLeagueIdx(idx);
-  }, [balance]);
+  }, [balance, playSound, startConfetti]);
 
   /* ── энергия: регенерация пишет в ref (источник истины для тапов),
         иначе тап перезаписывал бы восстановленное значение старым ── */
@@ -1066,6 +1126,8 @@ export default function App() {
         @keyframes mouthBounce { 0%,100%{transform:scaleY(1) scaleX(1)} 30%{transform:scaleY(1.12) scaleX(1.04)} 70%{transform:scaleY(0.88) scaleX(0.96)} }
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes toastPop { from{opacity:0;transform:translateX(-50%) scale(0.85) translateY(8px)} to{opacity:1;transform:translateX(-50%) scale(1) translateY(0)} }
+        @keyframes leaguePopIn { 0%{opacity:0;transform:translate(-50%,-50%) scale(0.4)} 60%{transform:translate(-50%,-50%) scale(1.08)} 100%{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+        @keyframes leaguePopOut { from{opacity:1;transform:translate(-50%,-50%) scale(1)} to{opacity:0;transform:translate(-50%,-50%) scale(0.8)} }
         .coin-btn { transform: rotateX(var(--cx,0deg)) rotateY(var(--cy,0deg)); transition: transform 130ms ease; will-change: transform; }
         .coin-btn.is-screaming { animation: coinShake 0.18s linear infinite; }
         .coin-glow { background: radial-gradient(circle,rgba(255,214,0,0.2) 0%,transparent 70%); transition: background 0.2s; }
@@ -1303,6 +1365,38 @@ export default function App() {
 
       {/* Модалка языка */}
       {showLang && <LangModal current={lang} onSelect={setLang} onClose={() => setShowLang(false)}/>}
+
+      {/* Конфетти */}
+      <canvas ref={confettiCanvasRef} style={{
+        position:"fixed", inset:0, width:"100%", height:"100%",
+        pointerEvents:"none", zIndex:490,
+      }}/>
+
+      {/* Попап новой лиги */}
+      {leagueCelebration && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:500,
+          pointerEvents:"none", display:"flex",
+          alignItems:"center", justifyContent:"center",
+        }}>
+          <div style={{
+            position:"absolute", top:"50%", left:"50%",
+            animation: "leaguePopIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards",
+            background:"linear-gradient(145deg,rgba(10,8,0,0.97),rgba(30,20,0,0.97))",
+            border:`2px solid ${leagueCelebration.color}`,
+            borderRadius:28, padding:"36px 52px", textAlign:"center",
+            boxShadow:`0 0 80px ${leagueCelebration.color}66, 0 20px 60px rgba(0,0,0,0.7)`,
+          }}>
+            <Trophy size={60} color={leagueCelebration.color} strokeWidth={1.5} style={{ marginBottom:12 }}/>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.55)", marginBottom:6, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase" }}>
+              {t.newLeague}
+            </div>
+            <div style={{ fontSize:36, fontWeight:900, color: leagueCelebration.color, letterSpacing:"-0.02em" }}>
+              {t.leagueLabel(leagueCelebration.name)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
