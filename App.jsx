@@ -939,10 +939,12 @@ export default function App() {
   const maxEnergyRef     = useRef(MAX_ENERGY);
   const energyRef        = useRef(energy);
   const tapValueRef      = useRef(PER_TAP);
+  const balanceRef       = useRef(0);
+  const tapsRef          = useRef(0);
+  const pendingSyncRef   = useRef(false);
 
   const maxEnergy = MAX_ENERGY;
   maxEnergyRef.current = maxEnergy;
-  energyRef.current = energy;
   const tapValue = refBoostUntil > Date.now() ? +(PER_TAP * 2).toFixed(2) : PER_TAP;
   tapValueRef.current = tapValue;
 
@@ -951,9 +953,25 @@ export default function App() {
   /* ── загрузка из localStorage ── */
   useEffect(() => {
     const data = LS.get("fahhhh-progress", {});
-    if (data.balance) setBalance(data.balance);
-    if (data.taps)    setTaps(data.taps);
+    if (data.balance) { balanceRef.current = data.balance; setBalance(data.balance); }
+    if (data.taps)    { tapsRef.current = data.taps; setTaps(data.taps); }
     if (data.lang)    setLang(data.lang);
+  }, []);
+
+  /* ── RAF-синхронизация refs → state (60fps, без блокировки) ── */
+  useEffect(() => {
+    let rafId;
+    const loop = () => {
+      if (pendingSyncRef.current) {
+        pendingSyncRef.current = false;
+        setBalance(balanceRef.current);
+        setTaps(tapsRef.current);
+        setEnergy(energyRef.current);
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   /* ── сохранение ── */
@@ -1093,6 +1111,7 @@ export default function App() {
     const updated = { count: currentCount + 1, day: today };
     setBoostToday(updated);
     LS.set("fahhhh-boost-info", updated);
+    energyRef.current = maxEnergyRef.current;
     setEnergy(maxEnergyRef.current);
   }, [boostToday]);
 
@@ -1117,9 +1136,10 @@ export default function App() {
     if (energyRef.current < 1) return;
     const tv = tapValueRef.current;
     playSound();
-    setBalance(b => +(b + tv).toFixed(2));
-    setTaps(t => t + 1);
-    setEnergy(en => Math.max(0, en - 1));
+    balanceRef.current = +(balanceRef.current + tv).toFixed(2);
+    tapsRef.current += 1;
+    energyRef.current = Math.max(0, energyRef.current - 1);
+    pendingSyncRef.current = true;
 
     const rect = coinRef.current?.getBoundingClientRect();
     const cx = e.touches?.[0]?.clientX ?? e.clientX;
